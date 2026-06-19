@@ -21,6 +21,10 @@ export interface UpdateSessionStartTimePayload {
   startedAt: string;
 }
 
+export interface UpdateSessionTimeLimitPayload {
+  timeLimitMin: number;
+}
+
 export interface SessionControllerChangePayload {
   controllerCount: number;
   effectiveAt: string;

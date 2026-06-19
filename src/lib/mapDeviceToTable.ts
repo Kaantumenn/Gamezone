@@ -20,6 +20,7 @@ export function mapDeviceToTable(device: Device): Table {
     sessionId: device.sessionId,
     startedAt: device.startedAt,
     elapsedText: device.elapsedText,
+    elapsedMinutes: device.elapsedMinutes,
     tariffName: device.tariffName,
     tariffId: device.tariffId,
     controllerCount: device.controllerCount,

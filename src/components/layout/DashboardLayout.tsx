@@ -6,6 +6,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { AddOrderModal } from "@/components/modals/AddOrderModal";
 import { CloseTableModal } from "@/components/modals/CloseTableModal";
 import { MergeTableModal } from "@/components/modals/MergeTableModal";
+import { SessionTimeExpiredModal } from "@/components/modals/SessionTimeExpiredModal";
+import { TimeLimitWatcher } from "@/components/dashboard/TimeLimitWatcher";
 import { TransferTableModal } from "@/components/modals/TransferTableModal";
 import { OpenTableModal } from "@/components/modals/OpenTableModal";
 import { TabFilterProvider } from "@/context/TabFilterContext";
@@ -34,6 +36,8 @@ export function DashboardLayout({ children, mainClassName }: DashboardLayoutProp
       <CloseTableModal />
       <MergeTableModal />
       <TransferTableModal />
+      <SessionTimeExpiredModal />
+      <TimeLimitWatcher />
     </TabFilterProvider>
   );
 }

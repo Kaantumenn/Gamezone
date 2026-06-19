@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardList,
@@ -26,6 +26,7 @@ import { mapSessionOrders } from "@/lib/mapSessionOrders";
 import { closeSession, addSessionBonus, removeSessionBonus } from "@/services/sessions";
 import { useAddOrderModalStore } from "@/stores/addOrderModalStore";
 import { useCloseTableModalStore } from "@/stores/closeTableModalStore";
+import { useTimeExpiredModalStore } from "@/stores/timeExpiredModalStore";
 import {
   paymentMethodLabels,
   paymentMethodOptions,
@@ -46,6 +47,8 @@ function parseAmount(value: string): number {
 export function CloseTableModal() {
   const queryClient = useQueryClient();
   const { table, isOpen, close } = useCloseTableModalStore();
+  const clearSuppression = useTimeExpiredModalStore((s) => s.clearSuppression);
+  const lastSessionIdRef = useRef<number | null>(null);
   const openAddOrderModal = useAddOrderModalStore((s) => s.open);
   const {
     data: checkout,
@@ -125,6 +128,18 @@ export function CloseTableModal() {
 
   const isBonusPending =
     addBonusMutation.isPending || removeBonusMutation.isPending;
+
+  useEffect(() => {
+    if (isOpen && table?.sessionId) {
+      lastSessionIdRef.current = table.sessionId;
+      return;
+    }
+
+    if (!isOpen && lastSessionIdRef.current) {
+      clearSuppression(lastSessionIdRef.current);
+      lastSessionIdRef.current = null;
+    }
+  }, [isOpen, table?.sessionId, clearSuppression]);
 
   useEffect(() => {
     if (isOpen) {
@@ -254,7 +269,7 @@ export function CloseTableModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"

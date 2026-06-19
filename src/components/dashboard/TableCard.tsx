@@ -1,8 +1,18 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { Table } from "@/types/table";
-import { ChevronRight, Clock, Users } from "lucide-react";
+import { ChevronRight, Clock, Timer, Users } from "lucide-react";
 import Image from "next/image";
+import { TimeLimitProgressBorder } from "@/components/dashboard/TimeLimitProgressBorder";
+import {
+  getElapsedMinutesFromStart,
+  getElapsedSecondsFromStart,
+  getRemainingMinutes,
+  getTimeLimitProgressFromSeconds,
+  hasActiveTimeLimit,
+  isTimeLimitExpired,
+} from "@/lib/timeLimit";
 import { useOpenTableModalStore } from "@/stores/openTableModalStore";
 import { useTableDetailPanelStore } from "@/stores/tableDetailPanelStore";
 import { cn } from "@/lib/utils";
@@ -30,27 +40,64 @@ export function TableCard({ table }: TableCardProps) {
   const isOpen = table.isOpen;
   const isPS = table.type === "playstation";
   const isSelected = selectedDeviceId === table.deviceId;
+  const showTimeLimit = hasActiveTimeLimit(table);
+  const timeLimitMin = table.timeLimitMin ?? 0;
+
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!showTimeLimit) return;
+
+    const intervalId = window.setInterval(() => {
+      setTick((value) => value + 1);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [showTimeLimit]);
+
+  const elapsedMin = useMemo(() => {
+    if (!showTimeLimit) return 0;
+    return getElapsedMinutesFromStart(table.startedAt);
+  }, [showTimeLimit, table.startedAt, tick]);
+
+  const elapsedSec = useMemo(() => {
+    if (!showTimeLimit) return 0;
+    return getElapsedSecondsFromStart(table.startedAt);
+  }, [showTimeLimit, table.startedAt, tick]);
+
+  const remainingMin = showTimeLimit
+    ? getRemainingMinutes(elapsedMin, timeLimitMin)
+    : 0;
+  const progress = showTimeLimit
+    ? getTimeLimitProgressFromSeconds(elapsedSec, timeLimitMin)
+    : 0;
+  const expired = showTimeLimit && isTimeLimitExpired(elapsedMin, timeLimitMin);
 
   const handleOpenTable = () => openModal(table);
   const handleOpenDetail = () => openPanel(table.deviceId);
 
-  return (
+  const cardContent = (
     <div
       className={cn(
-        "relative flex flex-col overflow-hidden rounded-2xl border transition-all",
+        "relative flex flex-col overflow-hidden rounded-[14px] border transition-all",
+        showTimeLimit ? "border-transparent" : "",
         isOpen
           ? isPS
             ? cn(
-                "cursor-pointer border-[#6366f1] bg-gradient-to-br from-[#1a1a2e] via-[#12121e] to-[#16162a]",
+                "cursor-pointer bg-gradient-to-br from-[#1a1a2e] via-[#12121e] to-[#16162a]",
+                !showTimeLimit && "border-[#6366f1]",
                 isSelected
                   ? "shadow-[0_0_32px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(99,102,241,0.15)] ring-1 ring-[#6366f1]/60"
-                  : "shadow-[0_0_28px_rgba(99,102,241,0.28),inset_0_1px_0_rgba(99,102,241,0.15)] hover:border-[#818cf8]",
+                  : !showTimeLimit &&
+                      "shadow-[0_0_28px_rgba(99,102,241,0.28),inset_0_1px_0_rgba(99,102,241,0.15)] hover:border-[#818cf8]",
               )
             : cn(
-                "cursor-pointer border-[#3b82f6] bg-gradient-to-br from-[#121a2e] via-[#12121e] to-[#121a2a]",
+                "cursor-pointer bg-gradient-to-br from-[#121a2e] via-[#12121e] to-[#121a2a]",
+                !showTimeLimit && "border-[#3b82f6]",
                 isSelected
                   ? "shadow-[0_0_32px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(59,130,246,0.15)] ring-1 ring-[#3b82f6]/60"
-                  : "shadow-[0_0_28px_rgba(59,130,246,0.28),inset_0_1px_0_rgba(59,130,246,0.15)] hover:border-[#60a5fa]",
+                  : !showTimeLimit &&
+                      "shadow-[0_0_28px_rgba(59,130,246,0.28),inset_0_1px_0_rgba(59,130,246,0.15)] hover:border-[#60a5fa]",
               )
           : "cursor-pointer border-white/5 bg-[#12121e]/60 hover:border-white/10",
       )}
@@ -82,11 +129,13 @@ export function TableCard({ table }: TableCardProps) {
           className={cn(
             "rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wider",
             isOpen
-              ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+              ? expired
+                ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.45)]"
+                : "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
               : "bg-white/5 text-white/35",
           )}
         >
-          {isOpen ? "AÇIK" : "KAPALI"}
+          {isOpen ? (expired ? "SÜRE DOLDU" : "AÇIK") : "KAPALI"}
         </span>
       </div>
 
@@ -107,6 +156,31 @@ export function TableCard({ table }: TableCardProps) {
               />
               <span className="font-mono tracking-wide">{table.elapsedText}</span>
             </div>
+
+            {showTimeLimit && (
+              <div className="flex items-center gap-2 text-sm">
+                <Timer
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    expired
+                      ? "text-amber-400"
+                      : isPS
+                        ? "text-[#818cf8]/80"
+                        : "text-[#60a5fa]/80",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "text-xs leading-snug",
+                    expired ? "font-medium text-amber-300" : "text-white/70",
+                  )}
+                >
+                  {timeLimitMin} dk ·{" "}
+                  {expired ? "Süre doldu" : `${remainingMin} dk kaldı`}
+                </span>
+              </div>
+            )}
+
             {table.controllerCount != null && table.controllerCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-white/80">
                 <Users
@@ -206,4 +280,18 @@ export function TableCard({ table }: TableCardProps) {
       </div>
     </div>
   );
+
+  if (showTimeLimit) {
+    return (
+      <TimeLimitProgressBorder
+        progress={progress}
+        isExpired={expired}
+        isPS={isPS}
+      >
+        {cardContent}
+      </TimeLimitProgressBorder>
+    );
+  }
+
+  return cardContent;
 }

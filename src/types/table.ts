@@ -9,6 +9,7 @@ export interface Table {
   sessionId: number | null;
   startedAt: string | null;
   elapsedText: string;
+  elapsedMinutes: number;
   tariffName: string | null;
   tariffId: number | null;
   controllerCount: number | null;

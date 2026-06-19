@@ -11,6 +11,7 @@ import type {
   SessionBonusPayload,
   UpdateSessionPayload,
   UpdateSessionStartTimePayload,
+  UpdateSessionTimeLimitPayload,
 } from "@/types/session";
 
 export async function openSession(payload: OpenSessionPayload) {
@@ -46,6 +47,17 @@ export async function updateSessionStartTime(
 ) {
   const { data } = await api.patch(
     `/sessions/${sessionId}/start-time`,
+    payload,
+  );
+  return data;
+}
+
+export async function updateSessionTimeLimit(
+  sessionId: number,
+  payload: UpdateSessionTimeLimitPayload,
+) {
+  const { data } = await api.patch(
+    `/sessions/${sessionId}/time-limit`,
     payload,
   );
   return data;
