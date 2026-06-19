@@ -1,9 +1,12 @@
 "use client";
 
+import { TableDetailPanel } from "@/components/dashboard/TableDetailPanel";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AddOrderModal } from "@/components/modals/AddOrderModal";
 import { CloseTableModal } from "@/components/modals/CloseTableModal";
+import { MergeTableModal } from "@/components/modals/MergeTableModal";
+import { TransferTableModal } from "@/components/modals/TransferTableModal";
 import { OpenTableModal } from "@/components/modals/OpenTableModal";
 import { TabFilterProvider } from "@/context/TabFilterContext";
 import { cn } from "@/lib/utils";
@@ -25,9 +28,12 @@ export function DashboardLayout({ children, mainClassName }: DashboardLayoutProp
           </main>
         </div>
       </div>
+      <TableDetailPanel />
       <OpenTableModal />
       <AddOrderModal />
       <CloseTableModal />
+      <MergeTableModal />
+      <TransferTableModal />
     </TabFilterProvider>
   );
 }

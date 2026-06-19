@@ -26,10 +26,39 @@ export interface SessionControllerChangePayload {
   effectiveAt: string;
 }
 
+export interface SessionBonusPayload {
+  amount: number;
+}
+
 export interface SessionControllerChange {
   id: number;
   sessionId: number;
   controllerCount: number;
   effectiveAt: string;
   createdAt?: string;
+}
+
+export interface MergeSessionPayload {
+  targetSessionId: number;
+}
+
+export interface MergeSessionResponse {
+  id: number;
+  deviceName: string;
+  status: string;
+  orderTotal: number;
+  grandTotal: number;
+}
+
+export interface TransferSessionPayload {
+  targetDeviceId: number;
+}
+
+export interface TransferSessionResponse {
+  id: number;
+  deviceId: number;
+  deviceName?: string;
+  status?: string;
+  orderTotal?: number;
+  grandTotal?: number;
 }

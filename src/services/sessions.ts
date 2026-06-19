@@ -2,8 +2,13 @@ import { api } from "@/lib/api";
 import type { CloseSessionBody } from "@/types/closeSession";
 import type { SessionCheckoutResponse } from "@/types/checkout";
 import type {
+  MergeSessionPayload,
+  MergeSessionResponse,
   OpenSessionPayload,
   SessionControllerChangePayload,
+  TransferSessionPayload,
+  TransferSessionResponse,
+  SessionBonusPayload,
   UpdateSessionPayload,
   UpdateSessionStartTimePayload,
 } from "@/types/session";
@@ -57,7 +62,48 @@ export async function changeSessionController(
   return data;
 }
 
+export async function addSessionBonus(
+  sessionId: number,
+  payload: SessionBonusPayload,
+) {
+  const { data } = await api.post(`/sessions/${sessionId}/bonus`, payload);
+  return data;
+}
+
+export async function removeSessionBonus(
+  sessionId: number,
+  payload: SessionBonusPayload,
+) {
+  const { data } = await api.post(
+    `/sessions/${sessionId}/remove-bonus`,
+    payload,
+  );
+  return data;
+}
+
 export async function reopenSession(sessionId: number) {
   const { data } = await api.post(`/sessions/${sessionId}/reopen`);
+  return data;
+}
+
+export async function mergeSessions(
+  sourceSessionId: number,
+  payload: MergeSessionPayload,
+): Promise<MergeSessionResponse> {
+  const { data } = await api.post<MergeSessionResponse>(
+    `/sessions/${sourceSessionId}/merge`,
+    payload,
+  );
+  return data;
+}
+
+export async function transferSession(
+  sessionId: number,
+  payload: TransferSessionPayload,
+): Promise<TransferSessionResponse> {
+  const { data } = await api.post<TransferSessionResponse>(
+    `/sessions/${sessionId}/transfer`,
+    payload,
+  );
   return data;
 }

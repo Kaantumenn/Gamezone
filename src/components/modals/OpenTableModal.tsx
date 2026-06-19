@@ -104,7 +104,23 @@ export function OpenTableModal() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !openSessionMutation.isPending) close();
+      if (!isOpen || openSessionMutation.isPending) return;
+
+      if (e.key === "Escape") {
+        close();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        const target = e.target as HTMLElement;
+        const tag = target.tagName;
+
+        if (tag === "TEXTAREA") return;
+        if (tag === "INPUT" || tag === "SELECT") return;
+
+        e.preventDefault();
+        document.getElementById("open-table-form")?.requestSubmit();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -138,7 +154,8 @@ export function OpenTableModal() {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!selectedTariff || openSessionMutation.isPending) return;
 
     setSubmitError(null);
@@ -190,6 +207,7 @@ export function OpenTableModal() {
           </button>
         </div>
 
+        <form id="open-table-form" onSubmit={handleSubmit}>
         <div className="space-y-5 px-6 py-5">
           <div
             className={cn(
@@ -486,8 +504,7 @@ export function OpenTableModal() {
             İptal
           </button>
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             disabled={openSessionMutation.isPending || !selectedTariff}
             className={cn(
               "flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50",
@@ -507,6 +524,7 @@ export function OpenTableModal() {
             )}
           </button>
         </div>
+        </form>
       </div>
     </div>
   );

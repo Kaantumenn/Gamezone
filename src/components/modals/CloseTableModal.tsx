@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardList,
-  Clock,
-  Gamepad2,
   Lock,
   Loader2,
   Minus,
@@ -15,8 +13,6 @@ import {
 } from "lucide-react";
 import { HelpLabel } from "@/components/ui/HelpLabel";
 import { UsageSegmentsList } from "@/components/session/UsageSegmentsList";
-import { SessionControllerChangeModal } from "@/components/modals/SessionControllerChangeModal";
-import { SessionStartTimeModal } from "@/components/modals/SessionStartTimeModal";
 import { useMenu } from "@/hooks/useMenu";
 import { useSessionCheckout } from "@/hooks/useSessionCheckout";
 import { useSessionOrders } from "@/hooks/useSessionOrders";
@@ -24,9 +20,10 @@ import {
   formatCurrency,
   formatDateTimeFromIso,
   formatDurationFromMinutes,
+  formatSignedCurrency,
 } from "@/lib/format";
 import { mapSessionOrders } from "@/lib/mapSessionOrders";
-import { closeSession } from "@/services/sessions";
+import { closeSession, addSessionBonus, removeSessionBonus } from "@/services/sessions";
 import { useAddOrderModalStore } from "@/stores/addOrderModalStore";
 import { useCloseTableModalStore } from "@/stores/closeTableModalStore";
 import {
@@ -71,9 +68,9 @@ export function CloseTableModal() {
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [personCount, setPersonCount] = useState(2);
   const [note, setNote] = useState("");
+  const [bonusAmount, setBonusAmount] = useState("");
+  const [bonusError, setBonusError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isStartTimeModalOpen, setStartTimeModalOpen] = useState(false);
-  const [isControllerModalOpen, setControllerModalOpen] = useState(false);
 
   const grandTotal = checkout?.grandTotal ?? 0;
 
@@ -93,6 +90,41 @@ export function CloseTableModal() {
       setSubmitError("Masa kapatılırken bir hata oluştu. Lütfen tekrar deneyin.");
     },
   });
+
+  const invalidateCheckout = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["session-checkout", table?.sessionId],
+    });
+  };
+
+  const addBonusMutation = useMutation({
+    mutationFn: (amount: number) =>
+      addSessionBonus(table!.sessionId!, { amount }),
+    onSuccess: () => {
+      invalidateCheckout();
+      setBonusAmount("");
+      setBonusError(null);
+    },
+    onError: () => {
+      setBonusError("Bonus eklenemedi. Lütfen tekrar deneyin.");
+    },
+  });
+
+  const removeBonusMutation = useMutation({
+    mutationFn: (amount: number) =>
+      removeSessionBonus(table!.sessionId!, { amount }),
+    onSuccess: () => {
+      invalidateCheckout();
+      setBonusAmount("");
+      setBonusError(null);
+    },
+    onError: () => {
+      setBonusError("Bonus silinemedi. Lütfen tekrar deneyin.");
+    },
+  });
+
+  const isBonusPending =
+    addBonusMutation.isPending || removeBonusMutation.isPending;
 
   useEffect(() => {
     if (isOpen) {
@@ -117,6 +149,8 @@ export function CloseTableModal() {
     ]);
     setPersonCount(2);
     setNote("");
+    setBonusAmount("");
+    setBonusError(null);
     setSubmitError(null);
   }, [isOpen, checkout]);
 
@@ -154,9 +188,6 @@ export function CloseTableModal() {
   );
 
   if (!isOpen || !table) return null;
-
-  const isPS = table.type === "playstation";
-  const accentBg = isPS ? "bg-[#6366f1]" : "bg-[#3b82f6]";
 
   const updatePayment = (id: string, patch: Partial<PaymentEntry>) => {
     setPayments((prev) =>
@@ -210,6 +241,18 @@ export function CloseTableModal() {
     openAddOrderModal(table);
   };
 
+  const handleAddBonus = () => {
+    const amount = parseAmount(bonusAmount);
+    if (amount <= 0 || isBonusPending || !table?.sessionId) return;
+    addBonusMutation.mutate(amount);
+  };
+
+  const handleRemoveBonus = () => {
+    const amount = parseAmount(bonusAmount);
+    if (amount <= 0 || isBonusPending || !table?.sessionId) return;
+    removeBonusMutation.mutate(amount);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -235,37 +278,15 @@ export function CloseTableModal() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {isPS && (
-              <button
-                type="button"
-                onClick={() => setControllerModalOpen(true)}
-                disabled={!table.sessionId || closeSessionMutation.isPending}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#12121e] px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:border-[#6366f1]/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Gamepad2 className="h-3.5 w-3.5" />
-                Kol Sayısını Güncelle
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setStartTimeModalOpen(true)}
-              disabled={!table.sessionId || closeSessionMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#12121e] px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:border-[#6366f1]/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              Açılış Saatini Güncelle
-            </button>
-            <button
-              type="button"
-              onClick={close}
-              disabled={closeSessionMutation.isPending}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/80 disabled:opacity-50"
-              aria-label="Kapat"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={close}
+            disabled={closeSessionMutation.isPending}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/80 disabled:opacity-50"
+            aria-label="Kapat"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -336,6 +357,36 @@ export function CloseTableModal() {
                     </div>
                   </dl>
                 </section>
+
+                {checkout.mergedSessions.length > 0 && (
+                  <section className="rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/5 p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-white">
+                      Birleştirilen Masalar
+                    </h3>
+                    <div className="space-y-2">
+                      {checkout.mergedSessions.map((merged) => (
+                        <p
+                          key={merged.id}
+                          className="text-sm leading-relaxed text-white/75"
+                        >
+                          <span className="font-medium text-[#c7d2fe]">
+                            {merged.sourceDeviceName.replace(
+                              /PS(\d+)/i,
+                              "PS $1",
+                            )}
+                          </span>
+                          <span className="text-white/35"> → </span>
+                          <span>
+                            Kullanım: ₺{formatCurrency(merged.sourceGameTotal)}
+                            , Sipariş: ₺
+                            {formatCurrency(merged.sourceOrderTotal)}, Toplam: ₺
+                            {formatCurrency(merged.sourceGrandTotal)}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
                 <section className="rounded-xl border border-white/10 bg-[#12121e] p-4">
                   <h3 className="mb-3 text-sm font-semibold text-white">
@@ -435,6 +486,18 @@ export function CloseTableModal() {
                       <span>Sipariş Toplamı</span>
                       <span>₺{formatCurrency(checkout.orderTotal)}</span>
                     </div>
+                    {checkout.bonusTotal !== 0 && (
+                      <div
+                        className={
+                          checkout.bonusTotal > 0
+                            ? "flex justify-between text-emerald-400/90"
+                            : "flex justify-between text-rose-400/90"
+                        }
+                      >
+                        <span>Bonus</span>
+                        <span>{formatSignedCurrency(checkout.bonusTotal)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 flex justify-between border-t border-white/5 pt-4">
                     <span className="text-sm font-semibold text-white">
@@ -444,6 +507,59 @@ export function CloseTableModal() {
                       ₺{formatCurrency(checkout.grandTotal)}
                     </span>
                   </div>
+                </section>
+
+                <section className="rounded-xl border border-white/10 bg-[#12121e] p-4">
+                  <h3 className="mb-3 text-sm font-semibold text-white">Bonus</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/40">
+                        ₺
+                      </span>
+                      <input
+                        type="text"
+                        value={bonusAmount}
+                        onChange={(e) => {
+                          setBonusAmount(e.target.value);
+                          setBonusError(null);
+                        }}
+                        placeholder="Tutar"
+                        disabled={isBonusPending}
+                        className="w-full rounded-xl border border-white/10 bg-[#0b0e14] py-2.5 pr-3 pl-7 text-sm text-white outline-none placeholder:text-white/25 disabled:opacity-50"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddBonus}
+                      disabled={
+                        isBonusPending || parseAmount(bonusAmount) <= 0
+                      }
+                      className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      {addBonusMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Bonus Ekle"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveBonus}
+                      disabled={
+                        isBonusPending || parseAmount(bonusAmount) <= 0
+                      }
+                      className="shrink-0 rounded-xl border border-white/10 bg-[#0b0e14] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-rose-500/40 hover:text-rose-400 disabled:opacity-50"
+                    >
+                      {removeBonusMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Bonus Sil"
+                      )}
+                    </button>
+                  </div>
+                  {bonusError && (
+                    <p className="mt-2 text-xs text-rose-400">{bonusError}</p>
+                  )}
                 </section>
 
                 <section className="rounded-xl border border-white/10 bg-[#12121e] p-4">
@@ -598,26 +714,6 @@ export function CloseTableModal() {
           </div>
         </div>
       </div>
-
-      <SessionStartTimeModal
-        isOpen={isStartTimeModalOpen}
-        onClose={() => setStartTimeModalOpen(false)}
-        sessionId={table.sessionId}
-        startedAt={checkout?.usage.startedAt ?? table.startedAt}
-        accentClass={accentBg}
-      />
-
-      {isPS && (
-        <SessionControllerChangeModal
-          isOpen={isControllerModalOpen}
-          onClose={() => setControllerModalOpen(false)}
-          sessionId={table.sessionId}
-          controllerCount={
-            checkout?.usage.controllerCount ?? table.controllerCount ?? 2
-          }
-          accentBg={accentBg}
-        />
-      )}
     </div>
   );
 }

@@ -28,6 +28,13 @@ export function formatCurrency(amount: number): string {
   });
 }
 
+export function formatSignedCurrency(amount: number): string {
+  if (amount < 0) {
+    return `-₺${formatCurrency(-amount)}`;
+  }
+  return `₺${formatCurrency(amount)}`;
+}
+
 export function formatDurationFromMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;

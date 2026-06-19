@@ -53,9 +53,35 @@ export function SessionStartTimeModal({
     setError(null);
   }, [isOpen, startedAt]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen || mutation.isPending) return;
+
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        const target = e.target as HTMLElement;
+        const tag = target.tagName;
+
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
+        e.preventDefault();
+        document.getElementById("session-start-time-form")?.requestSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose, mutation.isPending]);
+
   if (!isOpen || !sessionId) return null;
 
-  const handleSave = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
     const date = new Date(openingTime);
     if (Number.isNaN(date.getTime())) {
       setError("Geçerli bir açılış saati girin.");
@@ -85,6 +111,7 @@ export function SessionStartTimeModal({
           Masa yanlış saatte açıldıysa gerçek açılış saatini girin.
         </p>
 
+        <form id="session-start-time-form" onSubmit={handleSubmit}>
         <div className="mt-4">
           <label className="mb-1.5 block text-xs text-white/40">
             Açılış Saati
@@ -109,8 +136,7 @@ export function SessionStartTimeModal({
             Vazgeç
           </button>
           <button
-            type="button"
-            onClick={handleSave}
+            type="submit"
             disabled={mutation.isPending}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60",
@@ -121,6 +147,7 @@ export function SessionStartTimeModal({
             Kaydet
           </button>
         </div>
+        </form>
       </div>
     </div>
   );

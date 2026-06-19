@@ -2,6 +2,8 @@ import type {
   SessionCheckout,
   SessionCheckoutOrder,
   SessionCheckoutResponse,
+  SessionMergedSession,
+  SessionMergedSessionApi,
   SessionUsageSegment,
 } from "@/types/checkout";
 
@@ -36,6 +38,22 @@ function mapOrder(order: SessionCheckoutOrder) {
   };
 }
 
+function mapMergedSession(
+  session: SessionMergedSessionApi,
+): SessionMergedSession {
+  return {
+    id: session.id,
+    sourceSessionId: session.sourceSessionId,
+    targetSessionId: session.targetSessionId,
+    sourceDeviceName: session.sourceDeviceName,
+    targetDeviceName: session.targetDeviceName,
+    sourceGameTotal: toNumber(session.sourceGameTotal),
+    sourceOrderTotal: toNumber(session.sourceOrderTotal),
+    sourceGrandTotal: toNumber(session.sourceGrandTotal),
+    mergedAt: session.mergedAt,
+  };
+}
+
 export function mapCheckoutResponse(
   data: SessionCheckoutResponse,
 ): SessionCheckout {
@@ -54,13 +72,21 @@ export function mapCheckoutResponse(
         data.usage.baseUsageTotal ?? data.usage.gameTotal,
       ),
       gameTotal: toNumber(data.usage.gameTotal),
+      mergedUsageTotal: toNumber(
+        data.usage.mergedUsageTotal ?? data.mergedUsageTotal,
+      ),
       usageSegments,
     },
     tariffName: data.tariffName,
     gameTotal: toNumber(data.gameTotal),
+    mergedUsageTotal: toNumber(
+      data.mergedUsageTotal ?? data.usage?.mergedUsageTotal,
+    ),
     orderTotal: toNumber(data.orderTotal),
+    bonusTotal: toNumber(data.bonusTotal),
     grandTotal: toNumber(data.grandTotal),
     orders: (data.orders ?? []).map(mapOrder),
+    mergedSessions: (data.mergedSessions ?? []).map(mapMergedSession),
     usageSegments,
     controllerChanges:
       data.usage?.controllerChanges ?? data.controllerChanges ?? [],

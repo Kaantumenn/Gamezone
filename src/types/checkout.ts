@@ -15,6 +15,30 @@ export interface SessionUsageSegment {
   description: string;
 }
 
+export interface SessionMergedSessionApi {
+  id: number;
+  sourceSessionId: number;
+  targetSessionId: number;
+  sourceDeviceName: string;
+  targetDeviceName: string;
+  sourceGameTotal: number | string;
+  sourceOrderTotal: number | string;
+  sourceGrandTotal: number | string;
+  mergedAt: string;
+}
+
+export interface SessionMergedSession {
+  id: number;
+  sourceSessionId: number;
+  targetSessionId: number;
+  sourceDeviceName: string;
+  targetDeviceName: string;
+  sourceGameTotal: number;
+  sourceOrderTotal: number;
+  sourceGrandTotal: number;
+  mergedAt: string;
+}
+
 export interface SessionCheckoutUsage {
   startedAt: string;
   elapsedMinutes: number;
@@ -26,6 +50,7 @@ export interface SessionCheckoutUsage {
   pricePerMinute: number;
   baseUsageTotal?: number;
   gameTotal: number;
+  mergedUsageTotal?: number | string;
   controllerChanges?: SessionControllerChange[];
   usageSegments?: SessionUsageSegment[];
 }
@@ -48,9 +73,12 @@ export interface SessionCheckoutResponse {
   usage: SessionCheckoutUsage;
   tariffName: string;
   gameTotal: number;
+  mergedUsageTotal?: number | string;
   orderTotal: number;
+  bonusTotal?: number | string;
   grandTotal: number;
   orders: SessionCheckoutOrder[];
+  mergedSessions?: SessionMergedSessionApi[];
   controllerChanges?: SessionControllerChange[];
 }
 
@@ -69,9 +97,12 @@ export interface SessionCheckout {
   usage: SessionCheckoutUsage;
   tariffName: string;
   gameTotal: number;
+  mergedUsageTotal: number;
   orderTotal: number;
+  bonusTotal: number;
   grandTotal: number;
   orders: SessionCheckoutOrderItem[];
+  mergedSessions: SessionMergedSession[];
   usageSegments: SessionUsageSegment[];
   controllerChanges: SessionControllerChange[];
 }

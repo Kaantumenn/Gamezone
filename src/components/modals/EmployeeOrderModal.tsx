@@ -5,7 +5,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Cake,
   Candy,
-  Clock,
   Coffee,
   Cookie,
   GlassWater,
@@ -18,19 +17,16 @@ import {
   X,
 } from "lucide-react";
 import { ProductThumbnail } from "@/components/ui/ProductThumbnail";
+import { useEmployee } from "@/hooks/useEmployee";
 import { useMenu } from "@/hooks/useMenu";
-import { useSessionOrders } from "@/hooks/useSessionOrders";
+import { formatCurrency } from "@/lib/format";
+import { mapEmployeeOrders } from "@/lib/mapEmployeeOrders";
 import {
-  formatCurrency,
-  formatDateTimeFromIso,
-} from "@/lib/format";
-import { mapSessionOrders } from "@/lib/mapSessionOrders";
-import {
-  addOrderItem,
-  decreaseOrderItem,
-  deleteOrderItem,
-} from "@/services/orders";
-import { useAddOrderModalStore } from "@/stores/addOrderModalStore";
+  addEmployeeItem,
+  decreaseEmployeeItem,
+  deleteEmployeeOrderItem,
+} from "@/services/employees";
+import { useEmployeeOrderModalStore } from "@/stores/employeeOrderModalStore";
 import type { MenuProduct } from "@/types/order";
 import { cn } from "@/lib/utils";
 
@@ -43,37 +39,37 @@ const categoryIconsByName: Record<string, React.ReactNode> = {
   Kekler: <Cake className="h-4 w-4" />,
 };
 
-export function AddOrderModal() {
+export function EmployeeOrderModal() {
   const queryClient = useQueryClient();
-  const { table, isOpen, close } = useAddOrderModalStore();
+  const { employee, isOpen, close } = useEmployeeOrderModalStore();
   const { data: menu, isLoading: menuLoading } = useMenu();
   const {
-    data: sessionOrders = [],
+    data: employeeDetail,
     isLoading: ordersLoading,
-  } = useSessionOrders(table?.sessionId, isOpen);
+  } = useEmployee(employee?.id ?? null, isOpen);
 
   const [activeCategoryId, setActiveCategoryId] = useState(1);
-  const [note, setNote] = useState("");
 
-  const invalidateOrderData = () => {
-    queryClient.invalidateQueries({ queryKey: ["session-orders"] });
-    queryClient.invalidateQueries({ queryKey: ["devices"] });
-    queryClient.invalidateQueries({ queryKey: ["session-checkout"] });
+  const invalidateEmployeeData = () => {
+    queryClient.invalidateQueries({ queryKey: ["employees"] });
+    if (employee) {
+      queryClient.invalidateQueries({ queryKey: ["employee", employee.id] });
+    }
   };
 
   const addItemMutation = useMutation({
-    mutationFn: addOrderItem,
-    onSuccess: invalidateOrderData,
+    mutationFn: addEmployeeItem,
+    onSuccess: invalidateEmployeeData,
   });
 
   const decreaseItemMutation = useMutation({
-    mutationFn: decreaseOrderItem,
-    onSuccess: invalidateOrderData,
+    mutationFn: decreaseEmployeeItem,
+    onSuccess: invalidateEmployeeData,
   });
 
   const deleteItemMutation = useMutation({
-    mutationFn: deleteOrderItem,
-    onSuccess: invalidateOrderData,
+    mutationFn: deleteEmployeeOrderItem,
+    onSuccess: invalidateEmployeeData,
   });
 
   const isOrderMutating =
@@ -83,7 +79,6 @@ export function AddOrderModal() {
 
   useEffect(() => {
     if (isOpen) {
-      setNote("");
       setActiveCategoryId(1);
       document.body.style.overflow = "hidden";
     } else {
@@ -115,8 +110,8 @@ export function AddOrderModal() {
   const productList = menu?.products ?? [];
 
   const cart = useMemo(
-    () => mapSessionOrders(sessionOrders, productList),
-    [sessionOrders, productList],
+    () => mapEmployeeOrders(employeeDetail, productList),
+    [employeeDetail, productList],
   );
 
   const filteredProducts = useMemo(
@@ -129,38 +124,36 @@ export function AddOrderModal() {
     [cart],
   );
 
-  if (!isOpen || !table) return null;
+  if (!isOpen || !employee) return null;
 
-  const isPS = table.type === "playstation";
-  const accentClass = isPS ? "text-[#818cf8]" : "text-[#60a5fa]";
-  const accentBg = isPS ? "bg-[#6366f1]" : "bg-[#3b82f6]";
-  const tableTotal = table.grandTotal;
+  const accentClass = "text-[#818cf8]";
+  const accentBg = "bg-[#6366f1]";
 
   const addProduct = (product: MenuProduct) => {
-    if (product.stockQty <= 0 || !table.sessionId || isOrderMutating) return;
+    if (product.stockQty <= 0 || isOrderMutating) return;
 
     addItemMutation.mutate({
-      sessionId: table.sessionId,
+      employeeId: employee.id,
       productId: product.id,
       quantity: 1,
     });
   };
 
   const increaseItem = (productId: number) => {
-    if (!table.sessionId || isOrderMutating) return;
+    if (isOrderMutating) return;
 
     addItemMutation.mutate({
-      sessionId: table.sessionId,
+      employeeId: employee.id,
       productId,
       quantity: 1,
     });
   };
 
   const decreaseItem = (productId: number) => {
-    if (!table.sessionId || isOrderMutating) return;
+    if (isOrderMutating) return;
 
     decreaseItemMutation.mutate({
-      sessionId: table.sessionId,
+      employeeId: employee.id,
       productId,
     });
   };
@@ -171,7 +164,7 @@ export function AddOrderModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3">
       <button
         type="button"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -180,20 +173,20 @@ export function AddOrderModal() {
       />
 
       <div className="relative z-10 flex h-[min(96vh,1000px)] w-full max-w-[1320px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
           <div>
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <h2 className="text-lg font-semibold text-white">{table.name}</h2>
+              <h2 className="text-lg font-semibold text-white">
+                {employee.fullName}
+              </h2>
               <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                AÇIK
+                ÇALIŞAN SİPARİŞİ
               </span>
             </div>
-            <p className="mt-1 text-xs text-white/40">
-              Açılış Saati: {formatDateTimeFromIso(table.startedAt)} • Süre:{" "}
-              {table.elapsedText}
-            </p>
+            {employee.phone && (
+              <p className="mt-1 text-xs text-white/40">{employee.phone}</p>
+            )}
           </div>
           <button
             type="button"
@@ -205,9 +198,7 @@ export function AddOrderModal() {
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          {/* Left: categories + products */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-white/5">
             <div className="flex gap-1 overflow-x-auto border-b border-white/5 px-4 py-3">
               {categoryList.map((cat) => (
@@ -240,55 +231,62 @@ export function AddOrderModal() {
                   Bu kategoride ürün yok
                 </div>
               ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {filteredProducts.map((product) => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    onClick={() => addProduct(product)}
-                    disabled={product.stockQty <= 0}
-                    className={cn(
-                      "group relative flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#12121e] text-left transition-all hover:border-[#6366f1]/40 hover:shadow-[0_0_16px_rgba(99,102,241,0.12)]",
-                      product.stockQty <= 0 && "cursor-not-allowed opacity-40",
-                    )}
-                  >
-                    <div className="relative aspect-[3/4] w-full">
-                      <ProductThumbnail
-                        name={product.name}
-                        imageUrl={product.imageUrl}
-                        imageColor={product.imageColor}
-                        className="absolute inset-0 rounded-none"
-                        imageClassName="object-cover p-0"
-                      />
-                      <div
-                        className={cn(
-                          "absolute right-1.5 bottom-1.5 flex h-6 w-6 items-center justify-center rounded-md text-white opacity-90 shadow-md",
-                          accentBg,
-                        )}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {filteredProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => addProduct(product)}
+                      disabled={product.stockQty <= 0}
+                      className={cn(
+                        "group relative flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#12121e] text-left transition-all hover:border-[#6366f1]/40 hover:shadow-[0_0_16px_rgba(99,102,241,0.12)]",
+                        product.stockQty <= 0 &&
+                          "cursor-not-allowed opacity-40",
+                      )}
+                    >
+                      <div className="relative aspect-[3/4] w-full">
+                        <ProductThumbnail
+                          name={product.name}
+                          imageUrl={product.imageUrl}
+                          imageColor={product.imageColor}
+                          className="absolute inset-0 rounded-none"
+                          imageClassName="object-cover p-0"
+                        />
+                        <div
+                          className={cn(
+                            "absolute right-1.5 bottom-1.5 flex h-6 w-6 items-center justify-center rounded-md text-white opacity-90 shadow-md",
+                            accentBg,
+                          )}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="shrink-0 border-t border-white/5 px-2 py-1.5">
-                      <p className="truncate text-xs font-medium text-white">
-                        {product.name}
-                      </p>
-                      <p className={cn("mt-0.5 text-sm font-semibold", accentClass)}>
-                        ₺{product.price}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      <div className="shrink-0 border-t border-white/5 px-2 py-1.5">
+                        <p className="truncate text-xs font-medium text-white">
+                          {product.name}
+                        </p>
+                        <p
+                          className={cn(
+                            "mt-0.5 text-sm font-semibold",
+                            accentClass,
+                          )}
+                        >
+                          ₺{product.price}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Right: order list */}
           <div className="flex min-h-0 w-[360px] shrink-0 flex-col bg-[#0a0d12]">
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-white">Sipariş Listesi</h3>
+                <h3 className="text-sm font-semibold text-white">
+                  Sipariş Listesi
+                </h3>
                 <span
                   className={cn(
                     "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white",
@@ -326,7 +324,9 @@ export function AddOrderModal() {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-white">{item.name}</p>
-                      <p className="text-xs text-white/40">₺{formatCurrency(item.price)}</p>
+                      <p className="text-xs text-white/40">
+                        ₺{formatCurrency(item.price)}
+                      </p>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -368,7 +368,7 @@ export function AddOrderModal() {
 
             <div className="border-t border-white/5 p-4">
               <div className="flex justify-between text-sm">
-                <span className="text-white/45">Ara Toplam</span>
+                <span className="text-white/45">Toplam</span>
                 <span className={cn("font-semibold", accentClass)}>
                   ₺{formatCurrency(orderSubtotal)}
                 </span>
@@ -377,28 +377,8 @@ export function AddOrderModal() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="border-t border-white/5 px-5 py-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
-            <div>
-              <p className="mb-1.5 text-xs text-white/40">Not Ekle (Opsiyonel)</p>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Notunuzu buraya yazabilirsiniz..."
-                className="w-full rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white placeholder:text-white/25 outline-none focus:border-[#6366f1]/50"
-              />
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-3">
-              <div className="flex items-center gap-2 text-xs text-white/40">
-                <Clock className="h-3.5 w-3.5" />
-                Oyun Süresi
-              </div>
-              <p className="mt-1 font-mono text-sm text-white">{table.elapsedText}</p>
-            </div>
-
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-3">
               <div className="flex items-center gap-2 text-xs text-white/40">
                 <Receipt className="h-3.5 w-3.5" />
@@ -409,20 +389,10 @@ export function AddOrderModal() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-3">
-              <div className="flex items-center gap-2 text-xs text-white/40">
-                <Receipt className="h-3.5 w-3.5" />
-                Masa Toplamı
-              </div>
-              <p className="mt-1 text-lg font-bold text-white">
-                ₺{formatCurrency(tableTotal)}
-              </p>
-            </div>
-
             <button
               type="button"
               onClick={close}
-              className="rounded-xl border border-white/10 bg-[#12121e] px-5 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white lg:col-start-4"
+              className="rounded-xl border border-white/10 bg-[#12121e] px-5 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white"
             >
               Kapat
             </button>
