@@ -47,6 +47,33 @@ export function getRemainingMinutes(
   return Math.max(0, limitMin - elapsedMin);
 }
 
+export function getRemainingSeconds(
+  elapsedSec: number,
+  limitMin: number,
+): number {
+  const limitSec = limitMin * 60;
+  if (limitSec <= 0) return 0;
+  return Math.max(0, limitSec - elapsedSec);
+}
+
+export type TimeLimitBorderPhase = "normal" | "warning" | "critical";
+
+const WARNING_PROGRESS = 0.5;
+const CRITICAL_PROGRESS = 0.9;
+
+export function getTimeLimitBorderPhase(
+  progress: number,
+  isExpired: boolean,
+): TimeLimitBorderPhase {
+  if (isExpired || progress >= CRITICAL_PROGRESS) {
+    return "critical";
+  }
+  if (progress >= WARNING_PROGRESS) {
+    return "warning";
+  }
+  return "normal";
+}
+
 export function isTimeLimitExpired(
   elapsedMin: number,
   limitMin: number,

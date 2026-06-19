@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  getTimeLimitBorderPhase,
+  type TimeLimitBorderPhase,
+} from "@/lib/timeLimit";
 import { cn } from "@/lib/utils";
 
 interface TimeLimitProgressBorderProps {
@@ -9,6 +13,15 @@ interface TimeLimitProgressBorderProps {
   children: React.ReactNode;
 }
 
+const borderColors: Record<
+  TimeLimitBorderPhase,
+  { playstation: string; steering: string }
+> = {
+  normal: { playstation: "#6366f1", steering: "#3b82f6" },
+  warning: { playstation: "#f59e0b", steering: "#fbbf24" },
+  critical: { playstation: "#ef4444", steering: "#f43f5e" },
+};
+
 export function TimeLimitProgressBorder({
   progress,
   isExpired,
@@ -17,16 +30,15 @@ export function TimeLimitProgressBorder({
 }: TimeLimitProgressBorderProps) {
   const clamped = Math.min(1, Math.max(0, progress));
   const degrees = clamped * 360;
-  const accent = isPS ? "#6366f1" : "#3b82f6";
-  const warning = isPS ? "#f59e0b" : "#fb923c";
-  const color = isExpired || clamped >= 0.85 ? warning : accent;
+  const phase = getTimeLimitBorderPhase(clamped, isExpired);
+  const color = isPS ? borderColors[phase].playstation : borderColors[phase].steering;
 
   return (
     <div className="relative rounded-2xl p-[2px]">
       <div
         className={cn(
           "absolute inset-0 rounded-2xl transition-[background] duration-1000 ease-linear",
-          isExpired && "animate-pulse",
+          phase === "critical" && "animate-pulse",
         )}
         style={{
           background: isExpired

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,72 +11,109 @@ import {
   Receipt,
   Settings,
   Wallet,
+  X,
 } from "lucide-react";
 import { ClockWidget } from "@/components/layout/ClockWidget";
 import { useTabFilter } from "@/context/TabFilterContext";
+import { useSidebarStore } from "@/stores/sidebarStore";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Ana Sayfa", icon: Home },
-   // { href: "/siparisler", label: "Siparişler", icon: ClipboardList },
   { href: "/urunler", label: "Ürünler / Stok", icon: Package },
   { href: "/tarifeler", label: "Tarifeler", icon: Receipt },
   { href: "/kasa", label: "Kasa / Hesaplar", icon: Wallet },
-  //{ href: "/raporlar", label: "Raporlar", icon: BarChart3 },
   { href: "/calisanlar", label: "Çalışanlar", icon: Briefcase },
   { href: "/ayarlar", label: "Ayarlar", icon: Settings },
-   // { href: "/kullanicilar", label: "Kullanıcılar", icon: Users },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { goHome } = useTabFilter();
+  const { isMobileOpen, closeMobile } = useSidebarStore();
+
+  useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileOpen]);
 
   return (
-    <aside className="flex h-screen w-[260px] shrink-0 flex-col border-r border-white/5 bg-[#080810]">
-      <div className="flex justify-center px-5 pt-6">
-        <Image
-          src="/gamezone_logo.png"
-          alt="Gamezone"
-          width={960}
-          height={320}
-          priority
-          className="h-40 w-auto max-w-full object-contain"
+    <>
+      {isMobileOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-[1px] lg:hidden"
+          onClick={closeMobile}
+          aria-label="Menüyü kapat"
         />
-      </div>
+      )}
 
-      <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto px-3">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          const isHome = item.href === "/";
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={isHome ? () => goHome() : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-[#6366f1] text-white shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-                  : "text-white/50 hover:bg-white/5 hover:text-white/80",
-              )}
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="px-4 pb-4">
-        <div className="relative mb-3 overflow-hidden rounded-2xl">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080810] via-transparent to-transparent" />
-         
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-[80] flex h-screen w-[min(280px,88vw)] flex-col border-r border-white/5 bg-[#080810] transition-transform duration-300 ease-out",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:static lg:z-auto lg:w-[260px] lg:shrink-0 lg:translate-x-0",
+        )}
+      >
+        <div className="flex items-center justify-between px-4 pt-5 lg:justify-center lg:px-5 lg:pt-6">
+          <Image
+            src="/gamezone_logo.png"
+            alt="Gamezone"
+            width={960}
+            height={320}
+            priority
+            className="h-24 w-auto max-w-[200px] object-contain lg:h-40 lg:max-w-full"
+          />
+          <button
+            type="button"
+            onClick={closeMobile}
+            className="rounded-lg p-2 text-white/40 hover:bg-white/5 hover:text-white/70 lg:hidden"
+            aria-label="Menüyü kapat"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <ClockWidget />
-      </div>
-    </aside>
+
+        <nav className="mt-4 flex-1 space-y-0.5 overflow-y-auto px-3 lg:mt-6">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            const isHome = item.href === "/";
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  if (isHome) goHome();
+                  closeMobile();
+                }}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-[#6366f1] text-white shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/80",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-4 pb-4">
+          <ClockWidget />
+        </div>
+      </aside>
+    </>
   );
 }

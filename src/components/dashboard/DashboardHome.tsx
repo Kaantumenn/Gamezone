@@ -32,20 +32,16 @@ export function DashboardHome() {
     );
   }
 
-  const showPS = activeTab === "all" || activeTab === "playstation";
-  const showSteering = activeTab === "all" || activeTab === "steering";
-
   return (
     <div className="space-y-8">
-      {showPS && (
+      {activeTab === "playstation" ? (
         <TableSection
           id="ps-tables"
           title="PLAYSTATION MASALARI"
           type="playstation"
           tables={data.playstation}
         />
-      )}
-      {showSteering && (
+      ) : (
         <TableSection
           id="steering-tables"
           title="DİREKSİYON MASALARI"

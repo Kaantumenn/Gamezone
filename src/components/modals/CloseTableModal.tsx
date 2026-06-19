@@ -278,7 +278,7 @@ export function CloseTableModal() {
       />
 
       <div className="relative z-10 flex max-h-[95vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
-        <div className="flex items-start justify-between border-b border-white/5 px-6 py-4">
+        <div className="flex items-start justify-between border-b border-white/5 px-4 py-4 sm:px-6">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
               <Receipt className="h-5 w-5" />
@@ -304,7 +304,7 @@ export function CloseTableModal() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
@@ -684,23 +684,23 @@ export function CloseTableModal() {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/5 px-6 py-4">
+        <div className="flex flex-col gap-3 border-t border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <button
             type="button"
             onClick={handleOpenOrderSummary}
             disabled={closeSessionMutation.isPending}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-[#6366f1]/40 hover:text-white disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-[#6366f1]/40 hover:text-white disabled:opacity-50 sm:w-auto"
           >
             <ClipboardList className="h-4 w-4" />
             Sipariş Özeti
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center gap-3 sm:w-auto">
             <button
               type="button"
               onClick={close}
               disabled={closeSessionMutation.isPending}
-              className="rounded-xl border border-white/10 bg-[#12121e] px-6 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
+              className="flex-1 rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50 sm:flex-none sm:px-6"
             >
               İptal
             </button>
@@ -712,7 +712,7 @@ export function CloseTableModal() {
                 !checkout ||
                 !isPaymentMatched
               }
-              className="flex items-center gap-2 rounded-xl bg-rose-500 px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-rose-600 disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-rose-600 disabled:opacity-50 sm:flex-none sm:px-6"
             >
               {closeSessionMutation.isPending ? (
                 <>

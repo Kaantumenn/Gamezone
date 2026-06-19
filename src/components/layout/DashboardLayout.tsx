@@ -23,9 +23,14 @@ export function DashboardLayout({ children, mainClassName }: DashboardLayoutProp
     <TabFilterProvider>
       <div className="flex h-screen overflow-hidden bg-[#05050a]">
         <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <TopBar />
-          <main className={cn("flex-1 overflow-y-auto p-6", mainClassName)}>
+          <main
+            className={cn(
+              "flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6",
+              mainClassName,
+            )}
+          >
             {children}
           </main>
         </div>

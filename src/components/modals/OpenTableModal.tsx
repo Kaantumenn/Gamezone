@@ -177,8 +177,8 @@ export function OpenTableModal() {
         aria-label="Kapat"
       />
 
-      <div className="relative z-10 w-full max-w-[820px] rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/5 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -208,12 +208,12 @@ export function OpenTableModal() {
           </button>
         </div>
 
-        <form id="open-table-form" onSubmit={handleSubmit}>
-        <div className="space-y-5 px-6 py-5">
+        <form id="open-table-form" onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
           <div
             className={cn(
               "grid grid-cols-1 gap-5",
-              isPS && "md:grid-cols-2",
+              isPS && "lg:grid-cols-2",
             )}
           >
             {isPS && (
@@ -269,8 +269,8 @@ export function OpenTableModal() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="hidden lg:block">
               <HelpLabel className="mb-2.5">Tarife Seçimi</HelpLabel>
               {tariffsLoading ? (
                 <div className="flex h-[108px] items-center justify-center rounded-xl border border-white/10 bg-[#12121e]">
@@ -417,7 +417,7 @@ export function OpenTableModal() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div>
               <div className="mb-2.5 flex items-center justify-between">
                 <HelpLabel>Tutar Sınırı (Opsiyonel)</HelpLabel>
@@ -446,7 +446,7 @@ export function OpenTableModal() {
               </div>
             </div>
 
-            <div>
+            <div className="hidden lg:block">
               <HelpLabel className="mb-2.5">Uyarı Ayarları</HelpLabel>
               <div className="space-y-3 rounded-xl border border-white/10 bg-[#12121e] px-4 py-3.5">
                 <label className="flex cursor-pointer items-center gap-3">
@@ -479,7 +479,7 @@ export function OpenTableModal() {
             </div>
           </div>
 
-          <div>
+          <div className="hidden lg:block">
             <HelpLabel className="mb-2.5">Not (Opsiyonel)</HelpLabel>
             <textarea
               value={form.note}
@@ -495,7 +495,7 @@ export function OpenTableModal() {
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-white/5 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-white/5 px-4 py-4 sm:px-6">
           <button
             type="button"
             onClick={close}

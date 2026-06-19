@@ -206,9 +206,9 @@ export function AddOrderModal() {
         </div>
 
         {/* Body */}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
           {/* Left: categories + products */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-white/5">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:border-r lg:border-white/5">
             <div className="flex gap-1 overflow-x-auto border-b border-white/5 px-4 py-3">
               {categoryList.map((cat) => (
                 <button
@@ -240,7 +240,7 @@ export function AddOrderModal() {
                   Bu kategoride ürün yok
                 </div>
               ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 lg:gap-3 xl:grid-cols-5">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
@@ -248,11 +248,12 @@ export function AddOrderModal() {
                     onClick={() => addProduct(product)}
                     disabled={product.stockQty <= 0}
                     className={cn(
-                      "group relative flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#12121e] text-left transition-all hover:border-[#6366f1]/40 hover:shadow-[0_0_16px_rgba(99,102,241,0.12)]",
+                      "group relative flex w-full overflow-hidden rounded-xl border border-white/10 bg-[#12121e] text-left transition-all hover:border-[#6366f1]/40 hover:shadow-[0_0_16px_rgba(99,102,241,0.12)]",
+                      "flex-col gap-1.5 p-2.5 lg:gap-0 lg:p-0",
                       product.stockQty <= 0 && "cursor-not-allowed opacity-40",
                     )}
                   >
-                    <div className="relative aspect-[3/4] w-full">
+                    <div className="relative hidden aspect-[3/4] w-full lg:block">
                       <ProductThumbnail
                         name={product.name}
                         imageUrl={product.imageUrl}
@@ -269,13 +270,21 @@ export function AddOrderModal() {
                         <Plus className="h-3.5 w-3.5" />
                       </div>
                     </div>
-                    <div className="shrink-0 border-t border-white/5 px-2 py-1.5">
-                      <p className="truncate text-xs font-medium text-white">
+                    <div className="min-w-0 flex-1 lg:w-full lg:shrink-0 lg:border-t lg:border-white/5 lg:px-2 lg:py-1.5">
+                      <p className="line-clamp-2 text-xs font-medium leading-snug text-white lg:truncate lg:text-xs">
                         {product.name}
                       </p>
-                      <p className={cn("mt-0.5 text-sm font-semibold", accentClass)}>
+                      <p className={cn("mt-1 text-xs font-semibold lg:mt-0.5 lg:text-sm", accentClass)}>
                         ₺{product.price}
                       </p>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center self-end rounded-lg text-white lg:hidden",
+                        accentBg,
+                      )}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
                     </div>
                   </button>
                 ))}
@@ -285,8 +294,8 @@ export function AddOrderModal() {
           </div>
 
           {/* Right: order list */}
-          <div className="flex min-h-0 w-[360px] shrink-0 flex-col bg-[#0a0d12]">
-            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+          <div className="flex max-h-[28vh] min-h-[130px] shrink-0 flex-col border-t border-white/5 bg-[#0a0d12] lg:max-h-none lg:min-h-0 lg:w-[360px] lg:flex-none">
+            <div className="flex items-center justify-between border-b border-white/5 px-4 py-2 lg:py-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-white">Sipariş Listesi</h3>
                 <span
@@ -303,13 +312,13 @@ export function AddOrderModal() {
               )}
             </div>
 
-            <div className="flex-1 space-y-2 overflow-y-auto p-3">
+            <div className="flex-1 space-y-2 overflow-y-auto p-2 lg:p-3">
               {ordersLoading ? (
-                <div className="flex h-32 items-center justify-center text-sm text-white/30">
+                <div className="flex h-20 items-center justify-center text-sm text-white/30 lg:h-32">
                   Siparişler yükleniyor...
                 </div>
               ) : cart.length === 0 ? (
-                <p className="py-8 text-center text-sm text-white/25">
+                <p className="py-4 text-center text-xs text-white/25 lg:py-8 lg:text-sm">
                   Ürüne tıklayarak sipariş ekleyin
                 </p>
               ) : (
@@ -322,7 +331,7 @@ export function AddOrderModal() {
                       name={item.name}
                       imageUrl={item.imageUrl}
                       imageColor={item.imageColor}
-                      className="h-10 w-10 shrink-0"
+                      className="hidden h-10 w-10 shrink-0 lg:block"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-white">{item.name}</p>
@@ -366,7 +375,7 @@ export function AddOrderModal() {
               )}
             </div>
 
-            <div className="border-t border-white/5 p-4">
+            <div className="border-t border-white/5 p-2.5 lg:p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-white/45">Ara Toplam</span>
                 <span className={cn("font-semibold", accentClass)}>
@@ -377,8 +386,8 @@ export function AddOrderModal() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-white/5 px-5 py-4">
+        {/* Footer — desktop only; mobile uses header X to close */}
+        <div className="hidden border-t border-white/5 px-5 py-4 lg:block">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto_auto] lg:items-end">
             <div>
               <p className="mb-1.5 text-xs text-white/40">Not Ekle (Opsiyonel)</p>

@@ -250,14 +250,14 @@ export function EmployeeDetailPanel() {
 
   return (
     <>
-      <div className="fixed inset-0 top-[72px] z-50">
+      <div className="fixed inset-0 top-[64px] z-50 sm:top-[72px]">
         <button
           type="button"
           className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
           onClick={closePanel}
           aria-label="Paneli kapat"
         />
-        <aside className="absolute right-0 top-0 flex h-full w-[500px] flex-col border-l border-white/[0.06] bg-[#080810] shadow-[-16px_0_48px_rgba(0,0,0,0.55)]">
+        <aside className="absolute right-0 top-0 flex h-full w-full max-w-full flex-col border-l border-white/[0.06] bg-[#080810] shadow-[-16px_0_48px_rgba(0,0,0,0.55)] sm:w-[500px] sm:max-w-[92vw]">
           <div className="flex items-start justify-between border-b border-white/[0.06] px-5 py-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2.5">

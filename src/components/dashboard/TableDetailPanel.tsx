@@ -236,14 +236,14 @@ export function TableDetailPanel() {
   const handleTransfer = () => openTransferModal(table);
 
   return (
-    <div className="fixed inset-0 top-[72px] z-50">
+    <div className="fixed inset-0 top-[64px] z-50 sm:top-[72px]">
       <button
         type="button"
         className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={closePanel}
         aria-label="Paneli kapat"
       />
-      <aside className="absolute right-0 top-0 flex h-full w-[500px] flex-col border-l border-white/[0.06] bg-[#080810] shadow-[-16px_0_48px_rgba(0,0,0,0.55)]">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-full flex-col border-l border-white/[0.06] bg-[#080810] shadow-[-16px_0_48px_rgba(0,0,0,0.55)] sm:w-[500px] sm:max-w-[92vw]">
       <div className="flex items-start justify-between border-b border-white/[0.06] px-5 py-4">
         <div className="flex items-center gap-2.5">
           <h2 className="text-lg font-semibold text-white">{table.name}</h2>
@@ -354,43 +354,45 @@ export function TableDetailPanel() {
           </div>
         </div>
 
-        <div className="mt-5">
-          <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
-            MASA İŞLEMLERİ
-          </p>
-          <div className="flex gap-2">
-            <PanelActionButton
-              label="Masa Aktar"
-              onClick={handleTransfer}
-              variant="amber"
-              icon={<ArrowLeftRight className="h-4 w-4 text-amber-300" />}
-            />
-            <PanelActionButton
-              label="Masa Birleştir"
-              onClick={handleMerge}
-              variant="indigo"
-              icon={<Users className="h-4 w-4 text-[#a5b4fc]" />}
-            />
+        <div className="mt-5 flex flex-col gap-5">
+          <div className="order-2 lg:order-1">
+            <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
+              MASA İŞLEMLERİ
+            </p>
+            <div className="flex gap-2">
+              <PanelActionButton
+                label="Masa Aktar"
+                onClick={handleTransfer}
+                variant="amber"
+                icon={<ArrowLeftRight className="h-4 w-4 text-amber-300" />}
+              />
+              <PanelActionButton
+                label="Masa Birleştir"
+                onClick={handleMerge}
+                variant="indigo"
+                icon={<Users className="h-4 w-4 text-[#a5b4fc]" />}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5">
-          <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
-            DİĞER İŞLEMLER
-          </p>
-          <div className="flex gap-2">
-            <PanelActionButton
-              label="Sipariş Ekle"
-              onClick={handleAddOrder}
-              variant="emerald"
-              icon={<Plus className="h-4 w-4 text-emerald-300" />}
-            />
-            <PanelActionButton
-              label="İndirim Uygula"
-              disabled
-              variant="sky"
-              icon={<Tag className="h-4 w-4 text-sky-300" />}
-            />
+          <div className="order-1 lg:order-2">
+            <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
+              DİĞER İŞLEMLER
+            </p>
+            <div className="flex gap-2">
+              <PanelActionButton
+                label="Sipariş Ekle"
+                onClick={handleAddOrder}
+                variant="emerald"
+                icon={<Plus className="h-4 w-4 text-emerald-300" />}
+              />
+              <PanelActionButton
+                label="İndirim Uygula"
+                disabled
+                variant="sky"
+                icon={<Tag className="h-4 w-4 text-sky-300" />}
+              />
+            </div>
           </div>
         </div>
       </div>

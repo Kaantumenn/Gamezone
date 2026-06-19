@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-export type TopTab = "all" | "playstation" | "steering";
+export type TopTab = "playstation" | "steering";
 
 interface TabFilterContextValue {
   activeTab: TopTab;
@@ -13,33 +13,25 @@ interface TabFilterContextValue {
 
 const TabFilterContext = createContext<TabFilterContextValue | null>(null);
 
-function scrollToTab(tab: TopTab) {
+function scrollHome() {
   if (typeof window === "undefined") return;
-
-  if (tab === "all") {
-    document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-
-  const targetId = tab === "playstation" ? "ps-tables" : "steering-tables";
-  document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
+  document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 export function TabFilterProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeTab, setActiveTabState] = useState<TopTab>("all");
-  const pendingScrollTab = useRef<TopTab | null>(null);
+  const [activeTab, setActiveTabState] = useState<TopTab>("playstation");
+  const pendingScrollHome = useRef(false);
 
   useEffect(() => {
     if (pathname !== "/") return;
-    if (pendingScrollTab.current === null) return;
+    if (!pendingScrollHome.current) return;
 
-    const tab = pendingScrollTab.current;
-    pendingScrollTab.current = null;
+    pendingScrollHome.current = false;
 
     const frame = window.requestAnimationFrame(() => {
-      scrollToTab(tab);
+      scrollHome();
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -50,26 +42,25 @@ export function TabFilterProvider({ children }: { children: React.ReactNode }) {
       setActiveTabState(tab);
 
       if (pathname !== "/") {
-        pendingScrollTab.current = tab;
+        pendingScrollHome.current = true;
         router.push("/");
         return;
       }
 
-      scrollToTab(tab);
+      scrollHome();
     },
     [pathname, router],
   );
 
   const goHome = useCallback(() => {
-    setActiveTabState("all");
-    pendingScrollTab.current = "all";
+    pendingScrollHome.current = true;
 
     if (pathname !== "/") {
       router.push("/");
       return;
     }
 
-    scrollToTab("all");
+    scrollHome();
   }, [pathname, router]);
 
   return (
