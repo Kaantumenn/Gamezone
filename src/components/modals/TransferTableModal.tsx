@@ -8,6 +8,7 @@ import { transferSession } from "@/services/sessions";
 import { useTableDetailPanelStore } from "@/stores/tableDetailPanelStore";
 import { useTransferTableModalStore } from "@/stores/transferTableModalStore";
 import type { Table } from "@/types/table";
+import { submitFormById } from "@/lib/submitFormById";
 import { cn } from "@/lib/utils";
 
 function getTransferTargets(
@@ -82,7 +83,7 @@ export function TransferTableModal() {
         if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
 
         e.preventDefault();
-        document.getElementById("transfer-table-form")?.requestSubmit();
+        submitFormById("transfer-table-form");
       }
     };
 

@@ -8,6 +8,7 @@ import { mergeSessions } from "@/services/sessions";
 import { useMergeTableModalStore } from "@/stores/mergeTableModalStore";
 import { useTableDetailPanelStore } from "@/stores/tableDetailPanelStore";
 import type { Table } from "@/types/table";
+import { submitFormById } from "@/lib/submitFormById";
 import { cn } from "@/lib/utils";
 
 function formatPanelAmount(amount: number): string {
@@ -94,7 +95,7 @@ export function MergeTableModal() {
         if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
 
         e.preventDefault();
-        document.getElementById("merge-table-form")?.requestSubmit();
+        submitFormById("merge-table-form");
       }
     };
 

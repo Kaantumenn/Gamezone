@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Loader2 } from "lucide-react";
 import { toDateTimeLocalValue } from "@/lib/format";
 import { updateSessionStartTime } from "@/services/sessions";
+import { submitFormById } from "@/lib/submitFormById";
 import { cn } from "@/lib/utils";
 
 interface SessionStartTimeModalProps {
@@ -69,7 +70,7 @@ export function SessionStartTimeModal({
         if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
 
         e.preventDefault();
-        document.getElementById("session-start-time-form")?.requestSubmit();
+        submitFormById("session-start-time-form");
       }
     };
 

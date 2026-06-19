@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gamepad2, Loader2 } from "lucide-react";
 import { toDateTimeLocalValue } from "@/lib/format";
 import { changeSessionController } from "@/services/sessions";
+import { submitFormById } from "@/lib/submitFormById";
 import { cn } from "@/lib/utils";
 
 interface SessionControllerChangeModalProps {
@@ -67,7 +68,7 @@ export function SessionControllerChangeModal({
         if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
 
         e.preventDefault();
-        document.getElementById("session-controller-change-form")?.requestSubmit();
+        submitFormById("session-controller-change-form");
       }
     };
 

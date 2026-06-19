@@ -27,6 +27,7 @@ import {
   type TimeLimitPreset,
 } from "@/types/openTable";
 import type { Tariff } from "@/types/tariff";
+import { submitFormById } from "@/lib/submitFormById";
 import { cn } from "@/lib/utils";
 
 const controllerOptions: ControllerCount[] = [1, 2, 3, 4];
@@ -119,7 +120,7 @@ export function OpenTableModal() {
         if (tag === "INPUT" || tag === "SELECT") return;
 
         e.preventDefault();
-        document.getElementById("open-table-form")?.requestSubmit();
+        submitFormById("open-table-form");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
