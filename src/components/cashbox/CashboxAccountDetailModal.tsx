@@ -224,6 +224,12 @@ export function CashboxAccountDetailModal({
                       ₺{formatCurrency(detail.cardTotal)}
                     </span>
                   </div>
+                  {detail.remainingTotal > 0 && (
+                    <div className="flex justify-between text-amber-300/90">
+                      <span>Eksik Kalan</span>
+                      <span>₺{formatCurrency(detail.remainingTotal)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4 flex justify-between border-t border-white/5 pt-4">
                   <span className="text-sm font-semibold text-white">

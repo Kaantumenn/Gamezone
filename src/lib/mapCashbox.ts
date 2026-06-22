@@ -128,10 +128,28 @@ export function inferCashboxAccountDeviceType(
   return "playstation";
 }
 
+function mapRemainingTotal(
+  item: Pick<
+    CashboxAccountApi,
+    "remainingTotal" | "grandTotal" | "cashTotal" | "cashAmount" | "cardTotal" | "cardAmount"
+  >,
+  grandTotal: number,
+  cashTotal: number,
+  cardTotal: number,
+): number {
+  if (item.remainingTotal !== undefined && item.remainingTotal !== null) {
+    return Math.max(0, toNumber(item.remainingTotal));
+  }
+
+  return Math.max(0, grandTotal - cashTotal - cardTotal);
+}
+
 function mapAccount(item: CashboxAccountApi, index: number): CashboxAccount {
   const gameTotal = toNumber(item.gameTotal ?? item.usageTotal);
   const orderTotal = toNumber(item.orderTotal);
   const grandTotal = toNumber(item.grandTotal) || gameTotal + orderTotal;
+  const cashTotal = toNumber(item.cashTotal ?? item.cashAmount);
+  const cardTotal = toNumber(item.cardTotal ?? item.cardAmount);
 
   return {
     id: String(item.id ?? item.sessionId ?? index),
@@ -149,8 +167,9 @@ function mapAccount(item: CashboxAccountApi, index: number): CashboxAccount {
     gameTotal,
     orderTotal,
     grandTotal,
-    cashTotal: toNumber(item.cashTotal ?? item.cashAmount),
-    cardTotal: toNumber(item.cardTotal ?? item.cardAmount),
+    cashTotal,
+    cardTotal,
+    remainingTotal: mapRemainingTotal(item, grandTotal, cashTotal, cardTotal),
   };
 }
 
@@ -184,6 +203,8 @@ export function mapCashboxAccountDetail(
   const gameTotal = toNumber(data.gameTotal ?? usage.gameTotal);
   const orderTotal = toNumber(data.orderTotal);
   const grandTotal = toNumber(data.grandTotal) || gameTotal + orderTotal;
+  const cashTotal = toNumber(data.cashTotal);
+  const cardTotal = toNumber(data.cardTotal);
 
   return {
     sessionId: data.sessionId,
@@ -203,8 +224,14 @@ export function mapCashboxAccountDetail(
     gameTotal,
     orderTotal,
     grandTotal,
-    cashTotal: toNumber(data.cashTotal),
-    cardTotal: toNumber(data.cardTotal),
+    cashTotal,
+    cardTotal,
+    remainingTotal: mapRemainingTotal(
+      data,
+      grandTotal,
+      cashTotal,
+      cardTotal,
+    ),
     orders: (data.orders ?? []).map(mapDetailOrder),
     controllerChanges:
       data.controllerChanges ?? usage.controllerChanges ?? [],

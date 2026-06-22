@@ -171,7 +171,7 @@ export function AddOrderModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-50 flex flex-col lg:items-center lg:justify-center lg:p-3">
       <button
         type="button"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -179,26 +179,34 @@ export function AddOrderModal() {
         aria-label="Kapat"
       />
 
-      <div className="relative z-10 flex h-[min(96vh,1000px)] w-full max-w-[1320px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
+      <div
+        className={cn(
+          "relative z-10 flex w-full flex-col overflow-hidden border-white/10 bg-[#0b0e14] shadow-2xl",
+          "h-[100dvh] max-h-[100dvh] rounded-none border-0",
+          "pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]",
+          "lg:h-[min(96vh,1000px)] lg:max-h-[min(96vh,1000px)] lg:max-w-[1320px] lg:rounded-2xl lg:border lg:pt-0 lg:pb-0",
+        )}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <h2 className="text-lg font-semibold text-white">{table.name}</h2>
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/5 px-4 py-3 lg:items-center lg:px-5 lg:py-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <h2 className="truncate text-base font-semibold text-white lg:text-lg">
+                {table.name}
+              </h2>
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                 AÇIK
               </span>
             </div>
-            <p className="mt-1 text-xs text-white/40">
-              Açılış Saati: {formatDateTimeFromIso(table.startedAt)} • Süre:{" "}
-              {table.elapsedText}
+            <p className="mt-0.5 truncate text-[11px] text-white/40 lg:mt-1 lg:text-xs">
+              Açılış: {formatDateTimeFromIso(table.startedAt)} • {table.elapsedText}
             </p>
           </div>
           <button
             type="button"
             onClick={close}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/5 hover:text-white/80"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/40 hover:bg-white/5 hover:text-white/80"
             aria-label="Kapat"
           >
             <X className="h-5 w-5" />
@@ -230,13 +238,13 @@ export function AddOrderModal() {
               ))}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="mobile-scroll min-h-0 flex-1 overflow-y-auto p-3 lg:p-4">
               {menuLoading ? (
-                <div className="flex h-full min-h-[280px] items-center justify-center text-white/40">
+                <div className="flex h-full min-h-[100px] items-center justify-center text-white/40 lg:min-h-[280px]">
                   Yükleniyor...
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="flex h-full min-h-[280px] items-center justify-center text-sm text-white/30">
+                <div className="flex h-full min-h-[100px] items-center justify-center text-sm text-white/30 lg:min-h-[280px]">
                   Bu kategoride ürün yok
                 </div>
               ) : (
@@ -294,7 +302,7 @@ export function AddOrderModal() {
           </div>
 
           {/* Right: order list */}
-          <div className="flex max-h-[28vh] min-h-[130px] shrink-0 flex-col border-t border-white/5 bg-[#0a0d12] lg:max-h-none lg:min-h-0 lg:w-[360px] lg:flex-none">
+          <div className="flex max-h-[22dvh] min-h-[112px] shrink-0 flex-col border-t border-white/5 bg-[#0a0d12] lg:max-h-none lg:min-h-0 lg:w-[360px] lg:flex-none">
             <div className="flex items-center justify-between border-b border-white/5 px-4 py-2 lg:py-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-white">Sipariş Listesi</h3>
@@ -312,7 +320,7 @@ export function AddOrderModal() {
               )}
             </div>
 
-            <div className="flex-1 space-y-2 overflow-y-auto p-2 lg:p-3">
+            <div className="mobile-scroll flex-1 space-y-2 overflow-y-auto p-2 lg:p-3">
               {ordersLoading ? (
                 <div className="flex h-20 items-center justify-center text-sm text-white/30 lg:h-32">
                   Siparişler yükleniyor...
@@ -375,7 +383,7 @@ export function AddOrderModal() {
               )}
             </div>
 
-            <div className="border-t border-white/5 p-2.5 lg:p-4">
+            <div className="shrink-0 border-t border-white/5 p-2.5 lg:p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-white/45">Ara Toplam</span>
                 <span className={cn("font-semibold", accentClass)}>

@@ -132,6 +132,7 @@ export interface CashboxAccountApi {
   cashAmount?: number | string;
   cardTotal?: number | string;
   cardAmount?: number | string;
+  remainingTotal?: number | string;
 }
 
 export type CashboxAccountsApiResponse =
@@ -152,6 +153,7 @@ export interface CashboxAccount {
   grandTotal: number;
   cashTotal: number;
   cardTotal: number;
+  remainingTotal: number;
 }
 
 export interface CashboxAccountDetailOrderApi {
@@ -196,6 +198,7 @@ export interface CashboxAccountDetailResponse {
   grandTotal?: number | string;
   cashTotal?: number | string;
   cardTotal?: number | string;
+  remainingTotal?: number | string;
   orders?: CashboxAccountDetailOrderApi[];
   controllerChanges?: SessionControllerChange[];
 }
@@ -224,6 +227,7 @@ export interface CashboxAccountDetail {
   grandTotal: number;
   cashTotal: number;
   cardTotal: number;
+  remainingTotal: number;
   orders: CashboxAccountDetailOrder[];
   controllerChanges: SessionControllerChange[];
 }

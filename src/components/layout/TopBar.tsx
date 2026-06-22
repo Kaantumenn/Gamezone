@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bell, ChevronDown, Gamepad2, Menu, Sun } from "lucide-react";
 import { SteeringWheelIcon } from "@/components/icons/SteeringWheelIcon";
 import { useTabFilter, type TopTab } from "@/context/TabFilterContext";
-import { useSidebarStore } from "@/stores/sidebarStore";
+import { toggleSidebar } from "@/stores/sidebarStore";
 import { cn } from "@/lib/utils";
 
 const tabs: { id: TopTab; label: string; icon: React.ReactNode; activeClass: string }[] = [
@@ -24,7 +24,6 @@ const tabs: { id: TopTab; label: string; icon: React.ReactNode; activeClass: str
 
 export function TopBar() {
   const { activeTab, setActiveTab } = useTabFilter();
-  const toggleMobileSidebar = useSidebarStore((s) => s.toggleMobile);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -32,9 +31,9 @@ export function TopBar() {
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
-          onClick={toggleMobileSidebar}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#12121e] text-white/60 transition-colors hover:text-white/90 lg:hidden"
-          aria-label="Menüyü aç"
+          onClick={toggleSidebar}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#12121e] text-white/60 transition-colors hover:text-white/90"
+          aria-label="Menüyü aç/kapat"
         >
           <Menu className="h-5 w-5" />
         </button>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Briefcase,
+  ChevronLeft,
   Home,
   Package,
   Receipt,
@@ -30,7 +31,12 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { goHome } = useTabFilter();
-  const { isMobileOpen, closeMobile } = useSidebarStore();
+  const { isMobileOpen, isCollapsed, closeMobile, toggleCollapsed, hydrateCollapsed } =
+    useSidebarStore();
+
+  useEffect(() => {
+    hydrateCollapsed();
+  }, [hydrateCollapsed]);
 
   useEffect(() => {
     closeMobile();
@@ -58,12 +64,14 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-[80] flex h-screen w-[min(280px,88vw)] flex-col border-r border-white/5 bg-[#080810] transition-transform duration-300 ease-out",
+          "fixed inset-y-0 left-0 z-[80] flex h-screen flex-col border-r border-white/5 bg-[#080810] transition-[transform,width] duration-300 ease-out",
+          "w-[min(280px,88vw)]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:static lg:z-auto lg:w-[260px] lg:shrink-0 lg:translate-x-0",
+          "lg:static lg:z-auto lg:shrink-0 lg:translate-x-0",
+          isCollapsed ? "lg:w-0 lg:overflow-hidden lg:border-r-0" : "lg:w-[260px]",
         )}
       >
-        <div className="flex items-center justify-between px-4 pt-5 lg:justify-center lg:px-5 lg:pt-6">
+        <div className="relative flex min-w-[260px] items-center justify-between px-4 pt-5 lg:min-w-[260px] lg:justify-center lg:px-5 lg:pt-6">
           <Image
             src="/gamezone_logo.png"
             alt="Gamezone"
@@ -80,9 +88,17 @@ export function Sidebar() {
           >
             <X className="h-5 w-5" />
           </button>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="absolute right-3 top-6 hidden rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white/70 lg:flex"
+            aria-label="Menüyü daralt"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
         </div>
 
-        <nav className="mt-4 flex-1 space-y-0.5 overflow-y-auto px-3 lg:mt-6">
+        <nav className="mt-4 min-w-[260px] flex-1 space-y-0.5 overflow-y-auto px-3 lg:mt-6">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -110,7 +126,7 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="px-4 pb-4">
+        <div className="min-w-[260px] px-4 pb-4">
           <ClockWidget />
         </div>
       </aside>

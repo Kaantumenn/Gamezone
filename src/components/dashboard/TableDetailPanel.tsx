@@ -8,7 +8,7 @@ import {
   Gamepad2,
   Loader2,
   Plus,
-  Tag,
+  Repeat2,
   Timer,
   Users,
   Wallet,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SessionControllerChangeModal } from "@/components/modals/SessionControllerChangeModal";
 import { SessionStartTimeModal } from "@/components/modals/SessionStartTimeModal";
+import { SessionTimeLimitModal } from "@/components/modals/SessionTimeLimitModal";
 import { useDevices } from "@/hooks/useDevices";
 import { useMenu } from "@/hooks/useMenu";
 import { useSessionOrders } from "@/hooks/useSessionOrders";
@@ -25,6 +26,7 @@ import { mapSessionOrders } from "@/lib/mapSessionOrders";
 import { useAddOrderModalStore } from "@/stores/addOrderModalStore";
 import { useCloseTableModalStore } from "@/stores/closeTableModalStore";
 import { useMergeTableModalStore } from "@/stores/mergeTableModalStore";
+import { useSwitchDevicesModalStore } from "@/stores/switchDevicesModalStore";
 import { useTransferTableModalStore } from "@/stores/transferTableModalStore";
 import { useTableDetailPanelStore } from "@/stores/tableDetailPanelStore";
 import { cn } from "@/lib/utils";
@@ -132,11 +134,13 @@ export function TableDetailPanel() {
   const openCloseModal = useCloseTableModalStore((s) => s.open);
   const openMergeModal = useMergeTableModalStore((s) => s.open);
   const openTransferModal = useTransferTableModalStore((s) => s.open);
+  const openSwitchModal = useSwitchDevicesModalStore((s) => s.open);
 
   const { data: devicesData } = useDevices();
   const { data: menu } = useMenu();
   const [lastUpdate, setLastUpdate] = useState("");
   const [isStartTimeModalOpen, setStartTimeModalOpen] = useState(false);
+  const [isTimeLimitModalOpen, setTimeLimitModalOpen] = useState(false);
   const [isControllerModalOpen, setControllerModalOpen] = useState(false);
 
   const table = useMemo(() => {
@@ -171,6 +175,7 @@ export function TableDetailPanel() {
   useEffect(() => {
     if (!selectedDeviceId) {
       setStartTimeModalOpen(false);
+      setTimeLimitModalOpen(false);
       setControllerModalOpen(false);
     }
   }, [selectedDeviceId]);
@@ -204,21 +209,22 @@ export function TableDetailPanel() {
   const isCloseTableOpen = useCloseTableModalStore((s) => s.isOpen);
   const isMergeOpen = useMergeTableModalStore((s) => s.isOpen);
   const isTransferOpen = useTransferTableModalStore((s) => s.isOpen);
+  const isSwitchOpen = useSwitchDevicesModalStore((s) => s.isOpen);
 
   useEffect(() => {
     if (!selectedDeviceId) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (isAddOrderOpen || isCloseTableOpen || isMergeOpen || isTransferOpen) return;
-      if (isStartTimeModalOpen || isControllerModalOpen) return;
+      if (isAddOrderOpen || isCloseTableOpen || isMergeOpen || isTransferOpen || isSwitchOpen) return;
+      if (isStartTimeModalOpen || isTimeLimitModalOpen || isControllerModalOpen) return;
 
       closePanel();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedDeviceId, closePanel, isAddOrderOpen, isCloseTableOpen, isMergeOpen, isTransferOpen, isStartTimeModalOpen, isControllerModalOpen]);
+  }, [selectedDeviceId, closePanel, isAddOrderOpen, isCloseTableOpen, isMergeOpen, isTransferOpen, isSwitchOpen, isStartTimeModalOpen, isTimeLimitModalOpen, isControllerModalOpen]);
 
   if (!selectedDeviceId || !table) return null;
 
@@ -234,6 +240,7 @@ export function TableDetailPanel() {
   const handleCloseAccount = () => openCloseModal(table);
   const handleMerge = () => openMergeModal(table);
   const handleTransfer = () => openTransferModal(table);
+  const handleSwitch = () => openSwitchModal(table);
 
   return (
     <div className="fixed inset-0 top-[64px] z-50 sm:top-[72px]">
@@ -306,6 +313,15 @@ export function TableDetailPanel() {
           >
             <Clock className="h-3.5 w-3.5 text-cyan-400/80" />
             Açılış Saatini Güncelle
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimeLimitModalOpen(true)}
+            disabled={!table.sessionId}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-xs font-medium text-white/70 transition-colors hover:border-amber-500/40 hover:bg-amber-500/12 hover:text-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Timer className="h-3.5 w-3.5 text-amber-400/80" />
+            Süre Sınırı Koy
           </button>
         </div>
 
@@ -387,10 +403,10 @@ export function TableDetailPanel() {
                 icon={<Plus className="h-4 w-4 text-emerald-300" />}
               />
               <PanelActionButton
-                label="İndirim Uygula"
-                disabled
+                label="Masaları Değiştir"
+                onClick={handleSwitch}
                 variant="sky"
-                icon={<Tag className="h-4 w-4 text-sky-300" />}
+                icon={<Repeat2 className="h-4 w-4 text-sky-300" />}
               />
             </div>
           </div>
@@ -429,6 +445,14 @@ export function TableDetailPanel() {
         onClose={() => setStartTimeModalOpen(false)}
         sessionId={table.sessionId}
         startedAt={table.startedAt}
+        accentClass={accentBg}
+      />
+
+      <SessionTimeLimitModal
+        isOpen={isTimeLimitModalOpen}
+        onClose={() => setTimeLimitModalOpen(false)}
+        sessionId={table.sessionId}
+        timeLimitMin={table.timeLimitMin}
         accentClass={accentBg}
       />
 

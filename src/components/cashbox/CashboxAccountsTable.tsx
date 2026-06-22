@@ -123,7 +123,7 @@ export function CashboxAccountsTable({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] text-left text-base">
+            <table className="w-full min-w-[1320px] text-left text-base">
               <thead className="sticky top-0 z-10 bg-[#10131a] text-sm text-white/40">
                 <tr className="border-b border-white/5">
                   <th className="px-5 py-3.5 font-medium">PS No</th>
@@ -136,6 +136,7 @@ export function CashboxAccountsTable({
                   <th className="px-5 py-3.5 font-medium">Toplam</th>
                   <th className="px-5 py-3.5 font-medium">Nakit</th>
                   <th className="px-5 py-3.5 font-medium">Kart</th>
+                  <th className="px-5 py-3.5 font-medium">Eksik</th>
                   <th className="px-5 py-3.5 text-right font-medium">İşlem</th>
                 </tr>
               </thead>
@@ -191,6 +192,16 @@ export function CashboxAccountsTable({
                       </td>
                       <td className="px-5 py-4 text-sky-300/90">
                         ₺{formatCurrency(account.cardTotal)}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-5 py-4",
+                          account.remainingTotal > 0
+                            ? "font-medium text-amber-300"
+                            : "text-white/35",
+                        )}
+                      >
+                        ₺{formatCurrency(account.remainingTotal)}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center justify-end">

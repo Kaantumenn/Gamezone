@@ -22,7 +22,7 @@ export interface UpdateSessionStartTimePayload {
 }
 
 export interface UpdateSessionTimeLimitPayload {
-  timeLimitMin: number;
+  timeLimitMin: number | null;
 }
 
 export interface SessionControllerChangePayload {
@@ -65,4 +65,9 @@ export interface TransferSessionResponse {
   status?: string;
   orderTotal?: number;
   grandTotal?: number;
+}
+
+export interface SwitchSessionDevicesPayload {
+  firstSessionId: number;
+  secondSessionId: number;
 }

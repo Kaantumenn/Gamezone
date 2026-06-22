@@ -7,6 +7,7 @@ import { AddOrderModal } from "@/components/modals/AddOrderModal";
 import { CloseTableModal } from "@/components/modals/CloseTableModal";
 import { MergeTableModal } from "@/components/modals/MergeTableModal";
 import { SessionTimeExpiredModal } from "@/components/modals/SessionTimeExpiredModal";
+import { SwitchDevicesModal } from "@/components/modals/SwitchDevicesModal";
 import { TimeLimitWatcher } from "@/components/dashboard/TimeLimitWatcher";
 import { TransferTableModal } from "@/components/modals/TransferTableModal";
 import { OpenTableModal } from "@/components/modals/OpenTableModal";
@@ -41,6 +42,7 @@ export function DashboardLayout({ children, mainClassName }: DashboardLayoutProp
       <CloseTableModal />
       <MergeTableModal />
       <TransferTableModal />
+      <SwitchDevicesModal />
       <SessionTimeExpiredModal />
       <TimeLimitWatcher />
     </TabFilterProvider>

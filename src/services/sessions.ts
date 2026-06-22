@@ -12,6 +12,7 @@ import type {
   UpdateSessionPayload,
   UpdateSessionStartTimePayload,
   UpdateSessionTimeLimitPayload,
+  SwitchSessionDevicesPayload,
 } from "@/types/session";
 
 export async function openSession(payload: OpenSessionPayload) {
@@ -117,5 +118,12 @@ export async function transferSession(
     `/sessions/${sessionId}/transfer`,
     payload,
   );
+  return data;
+}
+
+export async function switchSessionDevices(
+  payload: SwitchSessionDevicesPayload,
+) {
+  const { data } = await api.post("/sessions/switch-devices", payload);
   return data;
 }

@@ -44,6 +44,19 @@ function parseAmount(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+const PAYMENT_TOLERANCE = 0.01;
+
+function getPaymentState(grandTotal: number, totalPaid: number) {
+  const isFullyPaid = Math.abs(grandTotal - totalPaid) < PAYMENT_TOLERANCE;
+  const isOverpaid = totalPaid > grandTotal + PAYMENT_TOLERANCE;
+  const isPartiallyPaid =
+    totalPaid > PAYMENT_TOLERANCE &&
+    totalPaid < grandTotal - PAYMENT_TOLERANCE;
+  const canSubmit = totalPaid > PAYMENT_TOLERANCE && !isOverpaid;
+
+  return { isFullyPaid, isOverpaid, isPartiallyPaid, canSubmit };
+}
+
 export function CloseTableModal() {
   const queryClient = useQueryClient();
   const { table, isOpen, close } = useCloseTableModalStore();
@@ -189,8 +202,8 @@ export function CloseTableModal() {
     [grandTotal, totalPaid],
   );
 
-  const isPaymentMatched = useMemo(
-    () => Math.abs(grandTotal - totalPaid) < 0.01,
+  const { isFullyPaid, isOverpaid, isPartiallyPaid, canSubmit } = useMemo(
+    () => getPaymentState(grandTotal, totalPaid),
     [grandTotal, totalPaid],
   );
 
@@ -228,15 +241,17 @@ export function CloseTableModal() {
   };
 
   const handleSubmit = () => {
-    if (!checkout || !table.sessionId || !isPaymentMatched || closeSessionMutation.isPending) {
+    if (!checkout || !table.sessionId || !canSubmit || closeSessionMutation.isPending) {
       return;
     }
 
     const body: CloseSessionBody = {
-      payments: payments.map((p) => ({
-        method: p.method,
-        amount: parseAmount(p.amount),
-      })),
+      payments: payments
+        .map((p) => ({
+          method: p.method,
+          amount: parseAmount(p.amount),
+        }))
+        .filter((p) => p.amount > 0),
     };
 
     const trimmedNote = note.trim();
@@ -648,16 +663,38 @@ export function CloseTableModal() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/45">Kalan Tutar</span>
-                      <span className="text-white/80">
+                      <span className="text-white/45">
+                        {isPartiallyPaid ? "Tahsil Edilmeyen" : "Kalan Tutar"}
+                      </span>
+                      <span
+                        className={
+                          isPartiallyPaid
+                            ? "font-medium text-amber-400"
+                            : "text-white/80"
+                        }
+                      >
                         ₺{formatCurrency(remaining)}
                       </span>
                     </div>
                   </div>
 
-                  {isPaymentMatched && (
+                  {isFullyPaid && (
                     <div className="mt-3 rounded-xl border border-[#6366f1]/25 bg-[#6366f1]/10 px-3 py-2.5 text-xs text-[#a5b4fc]">
                       Ödeme toplamı, genel toplam ile eşleşiyor.
+                    </div>
+                  )}
+
+                  {isPartiallyPaid && (
+                    <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200/90">
+                      Kısmi tahsilat yapılıyor. ₺{formatCurrency(remaining)} tutarı
+                      tahsil edilmeden hesap kapatılacak.
+                    </div>
+                  )}
+
+                  {isOverpaid && (
+                    <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-300">
+                      Ödenen tutar genel toplamı aşıyor. Lütfen ödeme satırlarını
+                      kontrol edin.
                     </div>
                   )}
                 </section>
@@ -710,7 +747,7 @@ export function CloseTableModal() {
               disabled={
                 closeSessionMutation.isPending ||
                 !checkout ||
-                !isPaymentMatched
+                !canSubmit
               }
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-rose-600 disabled:opacity-50 sm:flex-none sm:px-6"
             >
