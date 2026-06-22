@@ -371,29 +371,9 @@ export function TableDetailPanel() {
         </div>
 
         <div className="mt-5 flex flex-col gap-5">
-          <div className="order-2 lg:order-1">
+          <div>
             <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
-              MASA İŞLEMLERİ
-            </p>
-            <div className="flex gap-2">
-              <PanelActionButton
-                label="Masa Aktar"
-                onClick={handleTransfer}
-                variant="amber"
-                icon={<ArrowLeftRight className="h-4 w-4 text-amber-300" />}
-              />
-              <PanelActionButton
-                label="Masa Birleştir"
-                onClick={handleMerge}
-                variant="indigo"
-                icon={<Users className="h-4 w-4 text-[#a5b4fc]" />}
-              />
-            </div>
-          </div>
-
-          <div className="order-1 lg:order-2">
-            <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
-              DİĞER İŞLEMLER
+              İŞLEMLER
             </p>
             <div className="flex gap-2">
               <PanelActionButton
@@ -401,6 +381,26 @@ export function TableDetailPanel() {
                 onClick={handleAddOrder}
                 variant="emerald"
                 icon={<Plus className="h-4 w-4 text-emerald-300" />}
+              />
+              <PanelActionButton
+                label="Masa Aktar"
+                onClick={handleTransfer}
+                variant="amber"
+                icon={<ArrowLeftRight className="h-4 w-4 text-amber-300" />}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2.5 text-[10px] font-bold tracking-[0.14em] text-white/30">
+              MASA İŞLEMLERİ
+            </p>
+            <div className="flex gap-2">
+              <PanelActionButton
+                label="Masa Birleştir"
+                onClick={handleMerge}
+                variant="indigo"
+                icon={<Users className="h-4 w-4 text-[#a5b4fc]" />}
               />
               <PanelActionButton
                 label="Masaları Değiştir"

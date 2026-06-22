@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   Briefcase,
   ChevronLeft,
+  ChevronRight,
   Home,
   Package,
   Receipt,
@@ -28,11 +29,19 @@ const navItems = [
   { href: "/ayarlar", label: "Ayarlar", icon: Settings },
 ];
 
+const collapseButtonClass =
+  "flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#12121e] text-white/50 transition-colors hover:border-[#6366f1]/40 hover:bg-[#6366f1]/10 hover:text-[#a5b4fc]";
+
 export function Sidebar() {
   const pathname = usePathname();
   const { goHome } = useTabFilter();
-  const { isMobileOpen, isCollapsed, closeMobile, toggleCollapsed, hydrateCollapsed } =
-    useSidebarStore();
+  const {
+    isMobileOpen,
+    isCollapsed,
+    closeMobile,
+    toggleCollapsed,
+    hydrateCollapsed,
+  } = useSidebarStore();
 
   useEffect(() => {
     hydrateCollapsed();
@@ -68,18 +77,28 @@ export function Sidebar() {
           "w-[min(280px,88vw)]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full",
           "lg:static lg:z-auto lg:shrink-0 lg:translate-x-0",
-          isCollapsed ? "lg:w-0 lg:overflow-hidden lg:border-r-0" : "lg:w-[260px]",
+          isCollapsed ? "lg:w-[76px]" : "lg:w-[260px]",
         )}
       >
-        <div className="relative flex min-w-[260px] items-center justify-between px-4 pt-5 lg:min-w-[260px] lg:justify-center lg:px-5 lg:pt-6">
-          <Image
-            src="/gamezone_logo.png"
-            alt="Gamezone"
-            width={960}
-            height={320}
-            priority
-            className="h-24 w-auto max-w-[200px] object-contain lg:h-40 lg:max-w-full"
-          />
+        <div
+          className={cn(
+            "relative flex items-center px-4 pt-5 lg:pt-6",
+            isCollapsed
+              ? "justify-center lg:px-2"
+              : "justify-between lg:justify-center lg:px-5",
+          )}
+        >
+          {!isCollapsed && (
+            <Image
+              src="/gamezone_logo.png"
+              alt="Gamezone"
+              width={960}
+              height={320}
+              priority
+              className="h-24 w-auto max-w-[200px] object-contain lg:h-40 lg:max-w-full"
+            />
+          )}
+
           <button
             type="button"
             onClick={closeMobile}
@@ -88,17 +107,31 @@ export function Sidebar() {
           >
             <X className="h-5 w-5" />
           </button>
+
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="absolute right-3 top-6 hidden rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white/70 lg:flex"
-            aria-label="Menüyü daralt"
+            className={cn(
+              collapseButtonClass,
+              "hidden lg:flex",
+              !isCollapsed && "absolute right-3 top-6",
+            )}
+            aria-label={isCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
           >
-            <ChevronLeft className="h-5 w-5" />
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </button>
         </div>
 
-        <nav className="mt-4 min-w-[260px] flex-1 space-y-0.5 overflow-y-auto px-3 lg:mt-6">
+        <nav
+          className={cn(
+            "mt-4 flex-1 space-y-0.5 overflow-y-auto px-3 lg:mt-6",
+            isCollapsed && "lg:px-2",
+          )}
+        >
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -108,25 +141,31 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 onClick={() => {
                   if (isHome) goHome();
                   closeMobile();
                 }}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center rounded-xl py-2.5 text-sm font-medium transition-colors",
+                  isCollapsed
+                    ? "gap-0 px-3 lg:justify-center lg:px-0"
+                    : "gap-3 px-3",
                   isActive
                     ? "bg-[#6366f1] text-white shadow-[0_0_20px_rgba(99,102,241,0.25)]"
                     : "text-white/50 hover:bg-white/5 hover:text-white/80",
                 )}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
-                <span>{item.label}</span>
+                <span className={cn(isCollapsed && "lg:hidden")}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="min-w-[260px] px-4 pb-4">
+        <div className={cn("px-4 pb-4", isCollapsed && "lg:hidden")}>
           <ClockWidget />
         </div>
       </aside>
