@@ -61,6 +61,8 @@ export function CashboxAccountDetailModal({
 
   if (!isOpen || !account) return null;
 
+  const remainingTotal = detail?.remainingTotal ?? account.remainingTotal;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -224,12 +226,17 @@ export function CashboxAccountDetailModal({
                       ₺{formatCurrency(detail.cardTotal)}
                     </span>
                   </div>
-                  {detail.remainingTotal > 0 && (
-                    <div className="flex justify-between text-amber-300/90">
-                      <span>Eksik Kalan</span>
-                      <span>₺{formatCurrency(detail.remainingTotal)}</span>
-                    </div>
-                  )}
+                  <div
+                    className={cn(
+                      "flex justify-between",
+                      remainingTotal > 0
+                        ? "font-medium text-amber-300"
+                        : "text-white/70",
+                    )}
+                  >
+                    <span>Eksik Kalan</span>
+                    <span>₺{formatCurrency(remainingTotal)}</span>
+                  </div>
                 </div>
                 <div className="mt-4 flex justify-between border-t border-white/5 pt-4">
                   <span className="text-sm font-semibold text-white">

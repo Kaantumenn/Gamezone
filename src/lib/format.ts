@@ -80,3 +80,21 @@ export function formatTimeFromIso(iso: string | null): string {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
+
+export function formatDeviceDisplayName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+
+  const normalized = trimmed.toLowerCase();
+
+  if (
+    normalized.includes("direksiyon") ||
+    normalized.includes("steering") ||
+    /^d\s*\d/.test(normalized)
+  ) {
+    const match = trimmed.match(/(\d+)/);
+    return match ? `D${match[1]}` : "D";
+  }
+
+  return trimmed.replace(/PS(\d+)/i, "PS $1");
+}

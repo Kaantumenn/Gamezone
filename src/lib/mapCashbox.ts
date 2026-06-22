@@ -15,6 +15,7 @@ import type {
   CashboxTotalsApi,
 } from "@/types/cashbox";
 import type { TableType } from "@/types/table";
+import { formatDeviceDisplayName } from "@/lib/format";
 
 function toNumber(value: number | string | undefined): number {
   if (value === undefined) return 0;
@@ -53,7 +54,7 @@ function mapEntry(entry: CashboxEntry, index: number): CashboxReportEntry {
 
   return {
     id: String(entry.id ?? index),
-    label: entry.deviceName ?? `Kayıt ${index + 1}`,
+    label: formatDeviceDisplayName(entry.deviceName ?? `Kayıt ${index + 1}`),
     sublabel: entry.paymentMethod,
     cashAmount: toNumber(entry.cashAmount),
     cardAmount: toNumber(entry.cardAmount),
@@ -150,12 +151,14 @@ function mapAccount(item: CashboxAccountApi, index: number): CashboxAccount {
   const grandTotal = toNumber(item.grandTotal) || gameTotal + orderTotal;
   const cashTotal = toNumber(item.cashTotal ?? item.cashAmount);
   const cardTotal = toNumber(item.cardTotal ?? item.cardAmount);
+  const rawPsNo = item.psNo ?? item.psNumber ?? item.deviceName ?? `PS ${index + 1}`;
+  const deviceType = inferCashboxAccountDeviceType(item);
 
   return {
     id: String(item.id ?? item.sessionId ?? index),
     sessionId: item.sessionId,
-    psNo: item.psNo ?? item.psNumber ?? item.deviceName ?? `PS ${index + 1}`,
-    deviceType: inferCashboxAccountDeviceType(item),
+    psNo: formatDeviceDisplayName(rawPsNo),
+    deviceType,
     startedAt: item.startedAt ?? null,
     endedAt: item.endedAt ?? item.closedAt ?? null,
     durationText: formatDurationText(
@@ -188,7 +191,7 @@ function mapDetailOrder(order: CashboxAccountDetailOrderApi, index: number) {
   const unitPrice = toNumber(order.unitPrice);
 
   return {
-    id: order.id,
+    id: order.id ?? order.orderItemId,
     name: order.name ?? order.productName ?? `Ürün ${index + 1}`,
     quantity: order.quantity,
     unitPrice: unitPrice || (order.quantity > 0 ? total / order.quantity : 0),
@@ -196,21 +199,50 @@ function mapDetailOrder(order: CashboxAccountDetailOrderApi, index: number) {
   };
 }
 
+function sumPaymentsByMethod(
+  payments: CashboxAccountDetailResponse["payments"],
+  method: string,
+): number {
+  return (payments ?? [])
+    .filter((payment) => payment.method === method)
+    .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+}
+
 export function mapCashboxAccountDetail(
   data: CashboxAccountDetailResponse,
 ): CashboxAccountDetail {
   const usage = data.usage ?? {};
-  const gameTotal = toNumber(data.gameTotal ?? usage.gameTotal);
-  const orderTotal = toNumber(data.orderTotal);
-  const grandTotal = toNumber(data.grandTotal) || gameTotal + orderTotal;
-  const cashTotal = toNumber(data.cashTotal);
-  const cardTotal = toNumber(data.cardTotal);
+  const totals = data.totals ?? {};
+  const device = data.device;
+  const tariff = data.tariff;
+
+  const gameTotal = toNumber(
+    totals.gameTotal ?? data.gameTotal ?? usage.gameTotal,
+  );
+  const orderTotal = toNumber(totals.orderTotal ?? data.orderTotal);
+  const bonusTotal = toNumber(totals.bonusTotal ?? data.bonusTotal);
+  const mergedUsageTotal = toNumber(
+    totals.mergedUsageTotal ?? data.mergedUsageTotal,
+  );
+  const grandTotal =
+    toNumber(totals.grandTotal ?? data.grandTotal) ||
+    gameTotal + orderTotal + bonusTotal + mergedUsageTotal;
+  const cashTotal =
+    toNumber(totals.cashTotal ?? data.cashTotal) ||
+    sumPaymentsByMethod(data.payments, "CASH");
+  const cardTotal =
+    toNumber(totals.cardTotal ?? data.cardTotal) ||
+    sumPaymentsByMethod(data.payments, "CARD");
+
+  const rawDeviceName =
+    device?.name ?? data.deviceName ?? data.psNo ?? "Masa";
+  const rawPsNo = data.psNo ?? device?.name ?? data.deviceName ?? "—";
 
   return {
     sessionId: data.sessionId,
-    deviceName: data.deviceName ?? data.psNo ?? "Masa",
-    psNo: data.psNo ?? data.deviceName ?? "—",
-    tariffName: data.tariffName ?? "—",
+    deviceName: formatDeviceDisplayName(rawDeviceName),
+    psNo: formatDeviceDisplayName(rawPsNo),
+    tariffName: tariff?.name ?? data.tariffName ?? "—",
     startedAt: data.startedAt ?? usage.startedAt ?? null,
     endedAt: data.endedAt ?? data.closedAt ?? usage.endedAt ?? usage.closedAt ?? null,
     elapsedText: formatDurationText(
@@ -223,15 +255,20 @@ export function mapCashboxAccountDetail(
     baseUsageTotal: toNumber(usage.baseUsageTotal) || gameTotal,
     gameTotal,
     orderTotal,
+    bonusTotal,
+    mergedUsageTotal,
     grandTotal,
     cashTotal,
     cardTotal,
     remainingTotal: mapRemainingTotal(
-      data,
+      {
+        remainingTotal: totals.remainingTotal ?? data.remainingTotal,
+      },
       grandTotal,
       cashTotal,
       cardTotal,
     ),
+    note: data.note ?? null,
     orders: (data.orders ?? []).map(mapDetailOrder),
     controllerChanges:
       data.controllerChanges ?? usage.controllerChanges ?? [],

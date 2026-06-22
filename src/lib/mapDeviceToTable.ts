@@ -1,20 +1,12 @@
 import type { Device } from "@/types/device";
 import type { Table } from "@/types/table";
-
-function formatDeviceName(device: Device): string {
-  if (device.type === "PLAYSTATION") {
-    return device.name.replace(/PS(\d+)/i, "PS $1");
-  }
-
-  const match = device.name.match(/(\d+)/);
-  return match ? `D${match[1]}` : device.name;
-}
+import { formatDeviceDisplayName } from "@/lib/format";
 
 export function mapDeviceToTable(device: Device): Table {
   return {
     id: String(device.id),
     deviceId: device.id,
-    name: formatDeviceName(device),
+    name: formatDeviceDisplayName(device.name),
     type: device.type === "PLAYSTATION" ? "playstation" : "steering",
     isOpen: device.isOpen,
     sessionId: device.sessionId,

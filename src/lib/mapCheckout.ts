@@ -6,6 +6,7 @@ import type {
   SessionMergedSessionApi,
   SessionUsageSegment,
 } from "@/types/checkout";
+import { formatDeviceDisplayName } from "@/lib/format";
 
 function toNumber(value: number | string | undefined): number {
   if (value === undefined) return 0;
@@ -45,8 +46,8 @@ function mapMergedSession(
     id: session.id,
     sourceSessionId: session.sourceSessionId,
     targetSessionId: session.targetSessionId,
-    sourceDeviceName: session.sourceDeviceName,
-    targetDeviceName: session.targetDeviceName,
+    sourceDeviceName: formatDeviceDisplayName(session.sourceDeviceName),
+    targetDeviceName: formatDeviceDisplayName(session.targetDeviceName),
     sourceGameTotal: toNumber(session.sourceGameTotal),
     sourceOrderTotal: toNumber(session.sourceOrderTotal),
     sourceGrandTotal: toNumber(session.sourceGrandTotal),
@@ -62,7 +63,7 @@ export function mapCheckoutResponse(
   return {
     sessionId: data.sessionId,
     deviceId: data.deviceId,
-    deviceName: data.deviceName,
+    deviceName: formatDeviceDisplayName(data.deviceName),
     usage: {
       ...data.usage,
       controllerMultiplier: toNumber(data.usage.controllerMultiplier) || 1,

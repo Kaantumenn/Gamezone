@@ -158,12 +158,43 @@ export interface CashboxAccount {
 
 export interface CashboxAccountDetailOrderApi {
   id?: number;
+  orderItemId?: number;
   name?: string;
   productName?: string;
   quantity: number;
   total?: number | string;
   lineTotal?: number | string;
   unitPrice?: number | string;
+}
+
+export interface CashboxAccountDetailDeviceApi {
+  id?: number;
+  name?: string;
+  type?: string;
+}
+
+export interface CashboxAccountDetailPaymentApi {
+  id?: number;
+  method: string;
+  amount: number | string;
+  note?: string | null;
+  createdAt?: string;
+}
+
+export interface CashboxAccountDetailTariffApi {
+  id?: number;
+  name?: string;
+}
+
+export interface CashboxAccountDetailTotalsApi {
+  gameTotal?: number | string;
+  orderTotal?: number | string;
+  bonusTotal?: number | string;
+  mergedUsageTotal?: number | string;
+  grandTotal?: number | string;
+  cashTotal?: number | string;
+  cardTotal?: number | string;
+  remainingTotal?: number | string;
 }
 
 export interface CashboxAccountDetailUsageApi {
@@ -185,21 +216,29 @@ export interface CashboxAccountDetailUsageApi {
 
 export interface CashboxAccountDetailResponse {
   sessionId: number;
+  status?: string;
   deviceId?: number;
   deviceName?: string;
+  device?: CashboxAccountDetailDeviceApi;
   psNo?: string;
   startedAt?: string;
   endedAt?: string;
   closedAt?: string;
   tariffName?: string;
+  tariff?: CashboxAccountDetailTariffApi;
   usage?: CashboxAccountDetailUsageApi;
+  totals?: CashboxAccountDetailTotalsApi;
   gameTotal?: number | string;
   orderTotal?: number | string;
+  bonusTotal?: number | string;
+  mergedUsageTotal?: number | string;
   grandTotal?: number | string;
   cashTotal?: number | string;
   cardTotal?: number | string;
   remainingTotal?: number | string;
+  note?: string | null;
   orders?: CashboxAccountDetailOrderApi[];
+  payments?: CashboxAccountDetailPaymentApi[];
   controllerChanges?: SessionControllerChange[];
 }
 
@@ -224,10 +263,29 @@ export interface CashboxAccountDetail {
   baseUsageTotal: number;
   gameTotal: number;
   orderTotal: number;
+  bonusTotal: number;
+  mergedUsageTotal: number;
   grandTotal: number;
   cashTotal: number;
   cardTotal: number;
   remainingTotal: number;
+  note: string | null;
   orders: CashboxAccountDetailOrder[];
   controllerChanges: SessionControllerChange[];
+}
+
+export interface UpdateCashboxAccountPaymentPayload {
+  method: "CASH" | "CARD";
+  amount: number;
+  note?: string | null;
+}
+
+export interface UpdateCashboxAccountPayload {
+  gameTotal?: number;
+  orderTotal?: number;
+  bonusTotal?: number;
+  mergedUsageTotal?: number;
+  grandTotal?: number;
+  note?: string | null;
+  payments?: UpdateCashboxAccountPaymentPayload[];
 }

@@ -3,6 +3,7 @@ import type {
   CashboxAccountsApiResponse,
   CashboxAccountDetailResponse,
   CashboxApiResponse,
+  UpdateCashboxAccountPayload,
 } from "@/types/cashbox";
 
 export async function fetchCashboxToday(): Promise<CashboxApiResponse> {
@@ -45,5 +46,18 @@ export async function fetchCashboxAccountDetail(
   const { data } = await api.get<CashboxAccountDetailResponse>(
     `/cashbox/accounts/${sessionId}`,
   );
+  return data;
+}
+
+export async function updateCashboxAccount(
+  sessionId: number,
+  payload: UpdateCashboxAccountPayload,
+) {
+  const { data } = await api.patch(`/cashbox/accounts/${sessionId}`, payload);
+  return data;
+}
+
+export async function deleteCashboxAccount(sessionId: number) {
+  const { data } = await api.delete(`/cashbox/accounts/${sessionId}`);
   return data;
 }

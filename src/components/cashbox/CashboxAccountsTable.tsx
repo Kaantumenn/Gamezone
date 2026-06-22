@@ -1,17 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Eye, Gamepad2, LayoutGrid, Loader2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Eye, Gamepad2, LayoutGrid, Loader2, Pencil, Trash2 } from "lucide-react";
 import { SteeringWheelIcon } from "@/components/icons/SteeringWheelIcon";
 import { CashboxAccountDetailModal } from "@/components/cashbox/CashboxAccountDetailModal";
+import { CashboxAccountEditModal } from "@/components/cashbox/CashboxAccountEditModal";
 import {
   formatCurrency,
   formatDateLabel,
   formatTimeFromIso,
 } from "@/lib/format";
+import {
+  canDeleteCashboxAccount,
+  canEditCashboxAccount,
+} from "@/lib/permissions";
+import { deleteCashboxAccount } from "@/services/cashbox";
+import { useAuthStore } from "@/stores/authStore";
 import type { CashboxAccount } from "@/types/cashbox";
 import type { TableType } from "@/types/table";
 import { cn } from "@/lib/utils";
+
+const iconActionClass =
+  "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40";
 
 type AccountDeviceFilter = "all" | TableType;
 
@@ -56,10 +67,29 @@ export function CashboxAccountsTable({
   subtitle,
   onReopenSuccess,
 }: CashboxAccountsTableProps) {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const canEdit = canEditCashboxAccount(user);
+  const canDelete = canDeleteCashboxAccount(user);
+
   const [selectedAccount, setSelectedAccount] = useState<CashboxAccount | null>(
     null,
   );
+  const [editingAccount, setEditingAccount] = useState<CashboxAccount | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = useState<CashboxAccount | null>(null);
   const [deviceFilter, setDeviceFilter] = useState<AccountDeviceFilter>("all");
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCashboxAccount,
+    onSuccess: () => {
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["cashbox-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["cashbox"] });
+      onReopenSuccess?.();
+    },
+  });
 
   const filteredAccounts = useMemo(() => {
     if (deviceFilter === "all") return accounts;
@@ -123,7 +153,7 @@ export function CashboxAccountsTable({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1320px] text-left text-base">
+            <table className="w-full min-w-[1180px] text-left text-base">
               <thead className="sticky top-0 z-10 bg-[#10131a] text-sm text-white/40">
                 <tr className="border-b border-white/5">
                   <th className="px-5 py-3.5 font-medium">PS No</th>
@@ -136,12 +166,16 @@ export function CashboxAccountsTable({
                   <th className="px-5 py-3.5 font-medium">Toplam</th>
                   <th className="px-5 py-3.5 font-medium">Nakit</th>
                   <th className="px-5 py-3.5 font-medium">Kart</th>
-                  <th className="px-5 py-3.5 font-medium">Eksik</th>
                   <th className="px-5 py-3.5 text-right font-medium">İşlem</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredAccounts.map((account) => (
+                {filteredAccounts.map((account) => {
+                  const isDeleting =
+                    deleteMutation.isPending &&
+                    deleteTarget?.sessionId === account.sessionId;
+
+                  return (
                     <tr
                       key={account.id}
                       className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
@@ -193,35 +227,57 @@ export function CashboxAccountsTable({
                       <td className="px-5 py-4 text-sky-300/90">
                         ₺{formatCurrency(account.cardTotal)}
                       </td>
-                      <td
-                        className={cn(
-                          "px-5 py-4",
-                          account.remainingTotal > 0
-                            ? "font-medium text-amber-300"
-                            : "text-white/35",
-                        )}
-                      >
-                        ₺{formatCurrency(account.remainingTotal)}
-                      </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => setSelectedAccount(account)}
                             disabled={!account.sessionId}
+                            aria-label="Detay"
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors",
+                              iconActionClass,
                               "border-white/10 bg-[#12121e] text-white/60 hover:border-emerald-500/40 hover:text-white",
-                              "disabled:cursor-not-allowed disabled:opacity-40",
                             )}
                           >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detay
+                            <Eye className="h-4 w-4" />
                           </button>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingAccount(account)}
+                              disabled={!account.sessionId}
+                              aria-label="Düzenle"
+                              className={cn(
+                                iconActionClass,
+                                "border-[#6366f1]/30 bg-[#6366f1]/10 text-[#a5b4fc] hover:border-[#6366f1]/50 hover:text-white",
+                              )}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(account)}
+                              disabled={!account.sessionId || deleteMutation.isPending}
+                              aria-label="İptal et"
+                              className={cn(
+                                iconActionClass,
+                                "border-rose-500/30 bg-rose-500/10 text-rose-300 hover:border-rose-500/50 hover:text-white",
+                              )}
+                            >
+                              {isDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -234,6 +290,63 @@ export function CashboxAccountsTable({
         onClose={() => setSelectedAccount(null)}
         onReopenSuccess={onReopenSuccess}
       />
+
+      {canEdit && (
+        <CashboxAccountEditModal
+          account={editingAccount}
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSuccess={onReopenSuccess}
+        />
+      )}
+
+      {canDelete && deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !deleteMutation.isPending && setDeleteTarget(null)}
+            aria-label="Kapat"
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0e14] p-5 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white">Hesabı İptal Et</h3>
+            <p className="mt-2 text-sm text-white/50">
+              <span className="text-white">{deleteTarget.psNo}</span> hesabını
+              iptal etmek istediğinize emin misiniz? Ödeme kayıtları silinir ve
+              hesap tutarları sıfırlanır.
+            </p>
+            {deleteMutation.isError && (
+              <p className="mt-3 text-sm text-rose-400">
+                Hesap iptal edilemedi. Lütfen tekrar deneyin.
+              </p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 rounded-xl border border-white/10 bg-[#12121e] py-2.5 text-sm text-white/70 hover:text-white disabled:opacity-50"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  deleteTarget.sessionId &&
+                  deleteMutation.mutate(deleteTarget.sessionId)
+                }
+                disabled={!deleteTarget.sessionId || deleteMutation.isPending}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 py-2.5 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+              >
+                {deleteMutation.isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                İptal Et
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

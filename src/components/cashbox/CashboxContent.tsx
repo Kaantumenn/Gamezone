@@ -25,6 +25,8 @@ import {
   toDateInputValue,
 } from "@/lib/format";
 import type { CashboxViewMode } from "@/types/cashbox";
+import { canViewCashboxHistory } from "@/lib/permissions";
+import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 
 const viewModes: { id: CashboxViewMode; label: string; icon: React.ReactNode }[] =
@@ -103,6 +105,8 @@ function ProgressBar({
 
 export function CashboxContent() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const canViewHistory = canViewCashboxHistory(user);
   const today = toDateInputValue();
   const monthStart = toDateInputValue(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -113,11 +117,20 @@ export function CashboxContent() {
   const [startDate, setStartDate] = useState(monthStart);
   const [endDate, setEndDate] = useState(today);
 
+  const effectiveMode: CashboxViewMode = canViewHistory ? mode : "today";
+  const effectiveSelectedDate = canViewHistory ? selectedDate : today;
+  const effectiveStartDate = canViewHistory ? startDate : today;
+  const effectiveEndDate = canViewHistory ? endDate : today;
+
+  const visibleViewModes = canViewHistory
+    ? viewModes
+    : viewModes.filter((item) => item.id === "today");
+
   const { data, isLoading, isError, refetch, isFetching } = useCashbox({
-    mode,
-    date: selectedDate,
-    startDate,
-    endDate,
+    mode: effectiveMode,
+    date: effectiveSelectedDate,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
   });
 
   const {
@@ -125,26 +138,28 @@ export function CashboxContent() {
     isLoading: accountsLoading,
     isError: accountsError,
   } = useCashboxAccounts({
-    mode,
+    mode: effectiveMode,
     today,
-    selectedDate,
-    startDate,
-    endDate,
+    selectedDate: effectiveSelectedDate,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
   });
 
   const title = useMemo(() => {
-    if (mode === "today") return "Bugünkü Kasa";
-    if (mode === "date") return `${formatDateLabel(selectedDate)} Kasa Özeti`;
-    return `${formatDateLabel(startDate)} — ${formatDateLabel(endDate)}`;
-  }, [mode, selectedDate, startDate, endDate]);
+    if (effectiveMode === "today") return "Bugünkü Kasa";
+    if (effectiveMode === "date") {
+      return `${formatDateLabel(effectiveSelectedDate)} Kasa Özeti`;
+    }
+    return `${formatDateLabel(effectiveStartDate)} — ${formatDateLabel(effectiveEndDate)}`;
+  }, [effectiveMode, effectiveSelectedDate, effectiveStartDate, effectiveEndDate]);
 
   const totals = data?.totals;
 
   const accountsSubtitle = useMemo(() => {
-    if (mode === "today") return formatDateLabel(today);
-    if (mode === "date") return formatDateLabel(selectedDate);
-    return `${formatDateLabel(startDate)} — ${formatDateLabel(endDate)}`;
-  }, [mode, today, selectedDate, startDate, endDate]);
+    if (effectiveMode === "today") return formatDateLabel(today);
+    if (effectiveMode === "date") return formatDateLabel(effectiveSelectedDate);
+    return `${formatDateLabel(effectiveStartDate)} — ${formatDateLabel(effectiveEndDate)}`;
+  }, [effectiveMode, today, effectiveSelectedDate, effectiveStartDate, effectiveEndDate]);
 
   const handleRefresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -183,26 +198,28 @@ export function CashboxContent() {
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="flex rounded-xl border border-white/10 bg-[#0b0e14] p-1">
-          {viewModes.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setMode(item.id)}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                mode === item.id
-                  ? "bg-emerald-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.2)]"
-                  : "text-white/45 hover:text-white/70",
-              )}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {visibleViewModes.length > 1 && (
+          <div className="flex rounded-xl border border-white/10 bg-[#0b0e14] p-1">
+            {visibleViewModes.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMode(item.id)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  effectiveMode === item.id
+                    ? "bg-emerald-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.2)]"
+                    : "text-white/45 hover:text-white/70",
+                )}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {mode === "date" && (
+        {canViewHistory && effectiveMode === "date" && (
           <input
             type="date"
             value={selectedDate}
@@ -211,7 +228,7 @@ export function CashboxContent() {
           />
         )}
 
-        {mode === "range" && (
+        {canViewHistory && effectiveMode === "range" && (
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"

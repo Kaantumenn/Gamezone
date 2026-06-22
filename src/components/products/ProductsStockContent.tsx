@@ -23,7 +23,9 @@ import {
   useProductsStock,
 } from "@/hooks/useProductsStock";
 import { formatCurrency } from "@/lib/format";
+import { canManageProducts } from "@/lib/permissions";
 import { deleteProduct } from "@/services/products";
+import { useAuthStore } from "@/stores/authStore";
 import type { ApiProduct } from "@/types/order";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,8 @@ function isLowStock(product: ApiProduct): boolean {
 
 export function ProductsStockContent() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const canManage = canManageProducts(user);
   const { categories, products, isLoading, isError } = useProductsStock();
 
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -193,7 +197,9 @@ export function ProductsStockContent() {
                   <th className="px-4 py-3 font-medium">Stok</th>
                   <th className="px-4 py-3 font-medium">Min. Stok</th>
                   <th className="px-4 py-3 font-medium">Barkod</th>
-                  <th className="px-4 py-3 text-right font-medium">İşlemler</th>
+                  {canManage && (
+                    <th className="px-4 py-3 text-right font-medium">İşlemler</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -245,26 +251,28 @@ export function ProductsStockContent() {
                     <td className="px-4 py-3 font-mono text-xs text-white/40">
                       {product.barcode ?? "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(product)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/5 hover:text-[#818cf8]"
-                          aria-label={`${product.name} düzenle`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(product)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-rose-500/10 hover:text-rose-400"
-                          aria-label={`${product.name} sil`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {canManage && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(product)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-white/5 hover:text-[#818cf8]"
+                            aria-label={`${product.name} düzenle`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(product)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:bg-rose-500/10 hover:text-rose-400"
+                            aria-label={`${product.name} sil`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -282,7 +290,7 @@ export function ProductsStockContent() {
         onClose={closeForm}
       />
 
-      {deleteTarget && (
+      {canManage && deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"
