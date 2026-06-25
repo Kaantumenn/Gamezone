@@ -16,6 +16,7 @@ export function TimeLimitWatcher() {
     table: openTable,
     isOpen,
     suppressedSessionIds,
+    isSessionSnoozed,
     open,
     close,
   } = useTimeExpiredModalStore();
@@ -46,8 +47,9 @@ export function TimeLimitWatcher() {
       const isClosingThisSession =
         isCloseTableOpen && closeTableSessionId === sessionId;
       const isSuppressed = suppressedSessionIds.includes(sessionId);
+      const isSnoozed = isSessionSnoozed(sessionId);
 
-      if (isClosingThisSession || isSuppressed) {
+      if (isClosingThisSession || isSuppressed || isSnoozed) {
         if (isOpen && openTable?.sessionId === sessionId) {
           close();
         }
@@ -67,6 +69,7 @@ export function TimeLimitWatcher() {
     isOpen,
     openTable?.sessionId,
     suppressedSessionIds,
+    isSessionSnoozed,
     isCloseTableOpen,
     closeTableSessionId,
     open,

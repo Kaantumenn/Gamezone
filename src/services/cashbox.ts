@@ -56,8 +56,3 @@ export async function updateCashboxAccount(
   const { data } = await api.patch(`/cashbox/accounts/${sessionId}`, payload);
   return data;
 }
-
-export async function deleteCashboxAccount(sessionId: number) {
-  const { data } = await api.delete(`/cashbox/accounts/${sessionId}`);
-  return data;
-}

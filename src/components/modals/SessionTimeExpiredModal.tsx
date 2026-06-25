@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, Loader2, XCircle } from "lucide-react";
+import { Clock, Loader2, X, XCircle } from "lucide-react";
 import { useDevices } from "@/hooks/useDevices";
 import { updateSessionTimeLimit } from "@/services/sessions";
 import { useCloseTableModalStore } from "@/stores/closeTableModalStore";
@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 
 export function SessionTimeExpiredModal() {
   const queryClient = useQueryClient();
-  const { table, isOpen, close, suppressSession } = useTimeExpiredModalStore();
+  const { table, isOpen, close, dismiss, suppressSession } =
+    useTimeExpiredModalStore();
   const openCloseModal = useCloseTableModalStore((s) => s.open);
   const { data: devicesData } = useDevices();
   const [customMinutes, setCustomMinutes] = useState("");
@@ -74,6 +75,11 @@ export function SessionTimeExpiredModal() {
     handleExtend(parsedCustomMinutes);
   };
 
+  const handleDismiss = () => {
+    if (isPending || !currentTable.sessionId) return;
+    dismiss(currentTable.sessionId);
+  };
+
   const handleCloseAccount = () => {
     if (isPending || !currentTable.sessionId) return;
     suppressSession(currentTable.sessionId);
@@ -83,9 +89,26 @@ export function SessionTimeExpiredModal() {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        onClick={handleDismiss}
+        disabled={isPending}
+        aria-label="Kapat"
+      />
 
       <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
+        <button
+          type="button"
+          onClick={handleDismiss}
+          disabled={isPending}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white/80 disabled:opacity-50"
+          aria-label="Kapat"
+          title="1 dakika sonra tekrar hatırlat"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         <div className="px-6 pt-6 pb-4">
           <div
             className={cn(
@@ -100,6 +123,7 @@ export function SessionTimeExpiredModal() {
           </h2>
           <p className="mt-2 text-center text-sm text-white/45">
             Masa açık kalır. Süreyi uzatabilir veya hesabı kapatabilirsiniz.
+            Kapatırsanız 1 dakika içinde tekrar hatırlatılır.
           </p>
         </div>
 

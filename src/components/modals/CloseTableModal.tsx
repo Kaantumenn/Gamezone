@@ -52,7 +52,7 @@ function getPaymentState(grandTotal: number, totalPaid: number) {
   const isPartiallyPaid =
     totalPaid > PAYMENT_TOLERANCE &&
     totalPaid < grandTotal - PAYMENT_TOLERANCE;
-  const canSubmit = totalPaid > PAYMENT_TOLERANCE && !isOverpaid;
+  const canSubmit = totalPaid > PAYMENT_TOLERANCE;
 
   return { isFullyPaid, isOverpaid, isPartiallyPaid, canSubmit };
 }
@@ -199,6 +199,11 @@ export function CloseTableModal() {
 
   const remaining = useMemo(
     () => Math.max(0, grandTotal - totalPaid),
+    [grandTotal, totalPaid],
+  );
+
+  const overpaidAmount = useMemo(
+    () => Math.max(0, totalPaid - grandTotal),
     [grandTotal, totalPaid],
   );
 
@@ -664,16 +669,23 @@ export function CloseTableModal() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-white/45">
-                        {isPartiallyPaid ? "Tahsil Edilmeyen" : "Kalan Tutar"}
+                        {isOverpaid
+                          ? "Fazla Tahsilat"
+                          : isPartiallyPaid
+                            ? "Tahsil Edilmeyen"
+                            : "Kalan Tutar"}
                       </span>
                       <span
                         className={
-                          isPartiallyPaid
-                            ? "font-medium text-amber-400"
-                            : "text-white/80"
+                          isOverpaid
+                            ? "font-medium text-sky-300"
+                            : isPartiallyPaid
+                              ? "font-medium text-amber-400"
+                              : "text-white/80"
                         }
                       >
-                        ₺{formatCurrency(remaining)}
+                        ₺
+                        {formatCurrency(isOverpaid ? overpaidAmount : remaining)}
                       </span>
                     </div>
                   </div>
@@ -692,9 +704,9 @@ export function CloseTableModal() {
                   )}
 
                   {isOverpaid && (
-                    <div className="mt-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-300">
-                      Ödenen tutar genel toplamı aşıyor. Lütfen ödeme satırlarını
-                      kontrol edin.
+                    <div className="mt-3 rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-2.5 text-xs text-sky-200/90">
+                      Hesap ₺{formatCurrency(overpaidAmount)} fazla tahsil
+                      edilerek kapatılacak.
                     </div>
                   )}
                 </section>

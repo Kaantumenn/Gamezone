@@ -7,6 +7,8 @@ import {
   Calendar,
   CalendarRange,
   CreditCard,
+  Eye,
+  EyeOff,
   Gamepad2,
   Loader2,
   Receipt,
@@ -15,9 +17,24 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { MaskedMoney } from "@/components/cashbox/MaskedMoney";
+import {
+  CashboxDayTimeFilterModal,
+  CashboxFilterTrigger,
+  CashboxRangeFilterModal,
+} from "@/components/cashbox/CashboxFilters";
 import { useCashbox } from "@/hooks/useCashbox";
 import { useCashboxAccounts } from "@/hooks/useCashboxAccounts";
 import { CashboxAccountsTable } from "@/components/cashbox/CashboxAccountsTable";
+import {
+  buildDayTimeBounds,
+  buildRangeTimeBounds,
+  filterCashboxByTime,
+  formatRangeFilterLabel,
+  formatTimeFilterLabel,
+  hasDayTimeFilter,
+  normalizeTimeInput,
+} from "@/lib/cashboxTimeFilter";
 import {
   formatCurrency,
   formatDateLabel,
@@ -45,22 +62,32 @@ function StatCard({
   value,
   icon,
   accent,
+  showAmounts,
+  maskValue = true,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   accent: string;
+  showAmounts: boolean;
+  maskValue?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#12121e] p-5">
+    <div className="rounded-2xl border border-white/10 bg-[#12121e] p-5 transition-colors hover:border-white/15">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm text-white/40">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-white">{value}</p>
+          <p className="mt-2 text-3xl font-bold text-white">
+            {maskValue ? (
+              <MaskedMoney visible={showAmounts}>{value}</MaskedMoney>
+            ) : (
+              value
+            )}
+          </p>
         </div>
         <div
           className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-xl",
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
             accent,
           )}
         >
@@ -76,11 +103,13 @@ function ProgressBar({
   amount,
   total,
   colorClass,
+  showAmounts,
 }: {
   label: string;
   amount: number;
   total: number;
   colorClass: string;
+  showAmounts: boolean;
 }) {
   const percent = total > 0 ? Math.min(100, (amount / total) * 100) : 0;
 
@@ -89,14 +118,20 @@ function ProgressBar({
       <div className="mb-1.5 flex items-center justify-between text-base">
         <span className="text-white/60">{label}</span>
         <span className="font-medium text-white">
-          ₺{formatCurrency(amount)}{" "}
-          <span className="text-white/35">({percent.toFixed(0)}%)</span>
+          <MaskedMoney visible={showAmounts}>
+            ₺{formatCurrency(amount)}{" "}
+            <span className="text-white/35">({percent.toFixed(0)}%)</span>
+          </MaskedMoney>
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/5">
         <div
-          className={cn("h-full rounded-full transition-all", colorClass)}
-          style={{ width: `${percent}%` }}
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            colorClass,
+            !showAmounts && "opacity-30",
+          )}
+          style={{ width: showAmounts ? `${percent}%` : "100%" }}
         />
       </div>
     </div>
@@ -116,11 +151,35 @@ export function CashboxContent() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [startDate, setStartDate] = useState(monthStart);
   const [endDate, setEndDate] = useState(today);
+  const [amountsVisible, setAmountsVisible] = useState(true);
+  const [dayStartTime, setDayStartTime] = useState("");
+  const [dayEndTime, setDayEndTime] = useState("");
+  const [dayTimeModalOpen, setDayTimeModalOpen] = useState(false);
+  const [dayTimeDraft, setDayTimeDraft] = useState({
+    startTime: "",
+    endTime: "",
+  });
+  const [rangeModalOpen, setRangeModalOpen] = useState(false);
+  const [rangeFilter, setRangeFilter] = useState({
+    startDate: monthStart,
+    startTime: "00:00",
+    endDate: today,
+    endTime: "23:59",
+  });
+  const [rangeDraft, setRangeDraft] = useState(rangeFilter);
 
   const effectiveMode: CashboxViewMode = canViewHistory ? mode : "today";
   const effectiveSelectedDate = canViewHistory ? selectedDate : today;
-  const effectiveStartDate = canViewHistory ? startDate : today;
-  const effectiveEndDate = canViewHistory ? endDate : today;
+  const effectiveStartDate = canViewHistory
+    ? effectiveMode === "range"
+      ? rangeFilter.startDate
+      : startDate
+    : today;
+  const effectiveEndDate = canViewHistory
+    ? effectiveMode === "range"
+      ? rangeFilter.endDate
+      : endDate
+    : today;
 
   const visibleViewModes = canViewHistory
     ? viewModes
@@ -145,21 +204,167 @@ export function CashboxContent() {
     endDate: effectiveEndDate,
   });
 
-  const title = useMemo(() => {
-    if (effectiveMode === "today") return "Bugünkü Kasa";
-    if (effectiveMode === "date") {
-      return `${formatDateLabel(effectiveSelectedDate)} Kasa Özeti`;
+  const timeBounds = useMemo(() => {
+    if (effectiveMode === "today") {
+      return buildDayTimeBounds(today, dayStartTime, dayEndTime);
     }
-    return `${formatDateLabel(effectiveStartDate)} — ${formatDateLabel(effectiveEndDate)}`;
-  }, [effectiveMode, effectiveSelectedDate, effectiveStartDate, effectiveEndDate]);
+    if (effectiveMode === "date") {
+      return buildDayTimeBounds(effectiveSelectedDate, dayStartTime, dayEndTime);
+    }
+    return buildRangeTimeBounds(
+      rangeFilter.startDate,
+      rangeFilter.startTime,
+      rangeFilter.endDate,
+      rangeFilter.endTime,
+    );
+  }, [
+    effectiveMode,
+    today,
+    effectiveSelectedDate,
+    dayStartTime,
+    dayEndTime,
+    rangeFilter,
+  ]);
 
-  const totals = data?.totals;
+  const filteredReport = useMemo(() => {
+    if (!data) return null;
+
+    const filtered = filterCashboxByTime(
+      accounts,
+      data.entries,
+      timeBounds,
+    );
+
+    return {
+      ...data,
+      totals: filtered.totals,
+      entries: filtered.entries,
+    };
+  }, [data, accounts, timeBounds]);
+
+  const filteredAccounts = useMemo(() => {
+    if (!data) return accounts;
+    return filterCashboxByTime(accounts, data.entries, timeBounds).accounts;
+  }, [accounts, data, timeBounds]);
+
+  const showDaysTable = useMemo(() => {
+    if (!data?.days.length) return false;
+    if (effectiveMode === "range") return false;
+    return !hasDayTimeFilter(dayStartTime, dayEndTime);
+  }, [data?.days.length, effectiveMode, dayStartTime, dayEndTime]);
+
+  const title = useMemo(() => {
+    if (effectiveMode === "today") {
+      const timeLabel = formatTimeFilterLabel(dayStartTime, dayEndTime);
+      return timeLabel ? `Bugünkü Kasa · ${timeLabel}` : "Bugünkü Kasa";
+    }
+    if (effectiveMode === "date") {
+      const timeLabel = formatTimeFilterLabel(dayStartTime, dayEndTime);
+      const base = `${formatDateLabel(effectiveSelectedDate)} Kasa Özeti`;
+      return timeLabel ? `${base} · ${timeLabel}` : base;
+    }
+    return formatRangeFilterLabel(
+      rangeFilter.startDate,
+      rangeFilter.startTime,
+      rangeFilter.endDate,
+      rangeFilter.endTime,
+    );
+  }, [
+    effectiveMode,
+    effectiveSelectedDate,
+    dayStartTime,
+    dayEndTime,
+    rangeFilter,
+  ]);
+
+  const totals = filteredReport?.totals;
 
   const accountsSubtitle = useMemo(() => {
-    if (effectiveMode === "today") return formatDateLabel(today);
-    if (effectiveMode === "date") return formatDateLabel(effectiveSelectedDate);
-    return `${formatDateLabel(effectiveStartDate)} — ${formatDateLabel(effectiveEndDate)}`;
-  }, [effectiveMode, today, effectiveSelectedDate, effectiveStartDate, effectiveEndDate]);
+    if (effectiveMode === "today") {
+      const timeLabel = formatTimeFilterLabel(dayStartTime, dayEndTime);
+      return timeLabel
+        ? `${formatDateLabel(today)} · ${timeLabel}`
+        : formatDateLabel(today);
+    }
+    if (effectiveMode === "date") {
+      const timeLabel = formatTimeFilterLabel(dayStartTime, dayEndTime);
+      return timeLabel
+        ? `${formatDateLabel(effectiveSelectedDate)} · ${timeLabel}`
+        : formatDateLabel(effectiveSelectedDate);
+    }
+    return formatRangeFilterLabel(
+      rangeFilter.startDate,
+      rangeFilter.startTime,
+      rangeFilter.endDate,
+      rangeFilter.endTime,
+    );
+  }, [
+    effectiveMode,
+    today,
+    effectiveSelectedDate,
+    dayStartTime,
+    dayEndTime,
+    rangeFilter,
+  ]);
+
+  const handleClearDayTime = useCallback(() => {
+    setDayStartTime("");
+    setDayEndTime("");
+    setDayTimeDraft({ startTime: "", endTime: "" });
+    setDayTimeModalOpen(false);
+  }, []);
+
+  const openDayTimeModal = useCallback(() => {
+    setDayTimeDraft({
+      startTime: dayStartTime,
+      endTime: dayEndTime,
+    });
+    setDayTimeModalOpen(true);
+  }, [dayStartTime, dayEndTime]);
+
+  const handleApplyDayTime = useCallback(() => {
+    setDayStartTime(normalizeTimeInput(dayTimeDraft.startTime));
+    setDayEndTime(normalizeTimeInput(dayTimeDraft.endTime));
+    setDayTimeModalOpen(false);
+  }, [dayTimeDraft]);
+
+  const dayTimeFilterLabel = useMemo(() => {
+    const label = formatTimeFilterLabel(dayStartTime, dayEndTime);
+    return label ?? "Saat filtresi";
+  }, [dayStartTime, dayEndTime]);
+
+  const dayTimeModalDateLabel = useMemo(() => {
+    if (effectiveMode === "date") {
+      return formatDateLabel(effectiveSelectedDate);
+    }
+    return formatDateLabel(today);
+  }, [effectiveMode, effectiveSelectedDate, today]);
+
+  const openRangeModal = useCallback(() => {
+    setRangeDraft(rangeFilter);
+    setRangeModalOpen(true);
+  }, [rangeFilter]);
+
+  const handleApplyRange = useCallback(() => {
+    setRangeFilter({
+      ...rangeDraft,
+      startTime: normalizeTimeInput(rangeDraft.startTime) || "00:00",
+      endTime: normalizeTimeInput(rangeDraft.endTime) || "23:59",
+    });
+    setRangeModalOpen(false);
+  }, [rangeDraft]);
+
+  const handleClearRange = useCallback(() => {
+    const cleared = {
+      startDate: monthStart,
+      startTime: "00:00",
+      endDate: today,
+      endTime: "23:59",
+    };
+    setRangeDraft(cleared);
+    setRangeFilter(cleared);
+    setRangeModalOpen(false);
+  }, [monthStart, today]);
 
   const handleRefresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["devices"] });
@@ -181,20 +386,41 @@ export function CashboxContent() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={isFetching || accountsLoading}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white/70 transition-colors hover:border-emerald-500/30 hover:text-white disabled:opacity-50"
-        >
-          <RefreshCw
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAmountsVisible((prev) => !prev)}
             className={cn(
-              "h-4 w-4",
-              (isFetching || accountsLoading) && "animate-spin",
+              "flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
+              amountsVisible
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+                : "border-white/10 bg-[#12121e] text-white/40 hover:border-white/20 hover:text-white/70",
             )}
-          />
-          Yenile
-        </button>
+            aria-label={amountsVisible ? "Tutarları gizle" : "Tutarları göster"}
+            title={amountsVisible ? "Tutarları gizle" : "Tutarları göster"}
+          >
+            {amountsVisible ? (
+              <Eye className="h-5 w-5" />
+            ) : (
+              <EyeOff className="h-5 w-5" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isFetching || accountsLoading}
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white/70 transition-colors hover:border-emerald-500/30 hover:text-white disabled:opacity-50"
+          >
+            <RefreshCw
+              className={cn(
+                "h-4 w-4",
+                (isFetching || accountsLoading) && "animate-spin",
+              )}
+            />
+            Yenile
+          </button>
+        </div>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -219,6 +445,14 @@ export function CashboxContent() {
           </div>
         )}
 
+        {(effectiveMode === "today" || effectiveMode === "date") && (
+          <CashboxFilterTrigger
+            label={dayTimeFilterLabel}
+            onClick={openDayTimeModal}
+            active={hasDayTimeFilter(dayStartTime, dayEndTime)}
+          />
+        )}
+
         {canViewHistory && effectiveMode === "date" && (
           <input
             type="date"
@@ -229,30 +463,64 @@ export function CashboxContent() {
         )}
 
         {canViewHistory && effectiveMode === "range" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white outline-none focus:border-emerald-500/40"
-            />
-            <span className="text-white/30">—</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white outline-none focus:border-emerald-500/40"
-            />
-          </div>
+          <CashboxFilterTrigger
+            label={formatRangeFilterLabel(
+              rangeFilter.startDate,
+              rangeFilter.startTime,
+              rangeFilter.endDate,
+              rangeFilter.endTime,
+            )}
+            onClick={openRangeModal}
+            active
+          />
         )}
       </div>
 
-      {isLoading ? (
+      <CashboxDayTimeFilterModal
+        isOpen={dayTimeModalOpen}
+        dateLabel={dayTimeModalDateLabel}
+        startTime={dayTimeDraft.startTime}
+        endTime={dayTimeDraft.endTime}
+        onStartTimeChange={(value) =>
+          setDayTimeDraft((prev) => ({ ...prev, startTime: value }))
+        }
+        onEndTimeChange={(value) =>
+          setDayTimeDraft((prev) => ({ ...prev, endTime: value }))
+        }
+        onApply={handleApplyDayTime}
+        onClear={handleClearDayTime}
+        onClose={() => setDayTimeModalOpen(false)}
+      />
+
+      <CashboxRangeFilterModal
+        isOpen={rangeModalOpen}
+        startDate={rangeDraft.startDate}
+        startTime={rangeDraft.startTime}
+        endDate={rangeDraft.endDate}
+        endTime={rangeDraft.endTime}
+        onStartDateChange={(value) =>
+          setRangeDraft((prev) => ({ ...prev, startDate: value }))
+        }
+        onStartTimeChange={(value) =>
+          setRangeDraft((prev) => ({ ...prev, startTime: value }))
+        }
+        onEndDateChange={(value) =>
+          setRangeDraft((prev) => ({ ...prev, endDate: value }))
+        }
+        onEndTimeChange={(value) =>
+          setRangeDraft((prev) => ({ ...prev, endTime: value }))
+        }
+        onApply={handleApplyRange}
+        onClear={handleClearRange}
+        onClose={() => setRangeModalOpen(false)}
+      />
+
+      {isLoading || accountsLoading ? (
         <div className="flex flex-1 items-center justify-center py-24 text-white/40">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
           Kasa verisi yükleniyor...
         </div>
-      ) : isError || !totals ? (
+      ) : isError || !filteredReport || !totals ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#12121e] py-24 text-white/50">
           <p>Kasa verisi yüklenemedi.</p>
           <button
@@ -271,36 +539,43 @@ export function CashboxContent() {
               value={`₺${formatCurrency(totals.grandTotal)}`}
               icon={<TrendingUp className="h-5 w-5" />}
               accent="bg-emerald-500/15 text-emerald-400"
+              showAmounts={amountsVisible}
             />
             <StatCard
               label="Nakit"
               value={`₺${formatCurrency(totals.cashTotal)}`}
               icon={<Banknote className="h-5 w-5" />}
               accent="bg-amber-500/15 text-amber-400"
+              showAmounts={amountsVisible}
             />
             <StatCard
               label="Kart"
               value={`₺${formatCurrency(totals.cardTotal)}`}
               icon={<CreditCard className="h-5 w-5" />}
               accent="bg-sky-500/15 text-sky-400"
+              showAmounts={amountsVisible}
             />
             <StatCard
               label="Oyun Geliri"
               value={`₺${formatCurrency(totals.gameTotal)}`}
               icon={<Gamepad2 className="h-5 w-5" />}
               accent="bg-[#6366f1]/15 text-[#818cf8]"
+              showAmounts={amountsVisible}
             />
             <StatCard
               label="Sipariş Geliri"
               value={`₺${formatCurrency(totals.orderTotal)}`}
               icon={<ShoppingBag className="h-5 w-5" />}
               accent="bg-rose-500/15 text-rose-400"
+              showAmounts={amountsVisible}
             />
             <StatCard
               label="Kapatılan Masa"
               value={String(totals.accountCount)}
               icon={<Receipt className="h-5 w-5" />}
               accent="bg-white/5 text-white/60"
+              showAmounts={amountsVisible}
+              maskValue={false}
             />
           </div>
 
@@ -315,12 +590,14 @@ export function CashboxContent() {
                   amount={totals.cashTotal}
                   total={totals.grandTotal}
                   colorClass="bg-amber-500"
+                  showAmounts={amountsVisible}
                 />
                 <ProgressBar
                   label="Kart"
                   amount={totals.cardTotal}
                   total={totals.grandTotal}
                   colorClass="bg-sky-500"
+                  showAmounts={amountsVisible}
                 />
               </div>
             </section>
@@ -335,18 +612,20 @@ export function CashboxContent() {
                   amount={totals.gameTotal}
                   total={totals.grandTotal}
                   colorClass="bg-[#6366f1]"
+                  showAmounts={amountsVisible}
                 />
                 <ProgressBar
                   label="Sipariş"
                   amount={totals.orderTotal}
                   total={totals.grandTotal}
                   colorClass="bg-rose-500"
+                  showAmounts={amountsVisible}
                 />
               </div>
             </section>
           </div>
 
-          {data.days.length > 0 && (
+          {showDaysTable && (
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14]">
               <div className="border-b border-white/5 px-5 py-4">
                 <h2 className="text-sm font-semibold text-white">
@@ -367,7 +646,7 @@ export function CashboxContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.days.map((day) => (
+                    {filteredReport.days.map((day) => (
                       <tr
                         key={day.date}
                         className="border-b border-white/5 hover:bg-white/[0.02]"
@@ -376,19 +655,29 @@ export function CashboxContent() {
                           {formatDateLabel(day.date)}
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(day.cashTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(day.cashTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(day.cardTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(day.cardTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(day.gameTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(day.gameTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(day.orderTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(day.orderTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 font-medium text-emerald-400">
-                          ₺{formatCurrency(day.grandTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(day.grandTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/50">
                           {day.accountCount}
@@ -401,7 +690,7 @@ export function CashboxContent() {
             </section>
           )}
 
-          {data.entries.length > 0 && (
+          {filteredReport.entries.length > 0 && (
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14]">
               <div className="border-b border-white/5 px-5 py-4">
                 <h2 className="text-sm font-semibold text-white">
@@ -422,7 +711,7 @@ export function CashboxContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.entries.map((entry) => (
+                    {filteredReport.entries.map((entry) => (
                       <tr
                         key={entry.id}
                         className="border-b border-white/5 hover:bg-white/[0.02]"
@@ -441,19 +730,29 @@ export function CashboxContent() {
                             : "—"}
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(entry.gameTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(entry.gameTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(entry.orderTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(entry.orderTotal)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(entry.cashAmount)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(entry.cashAmount)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 text-white/70">
-                          ₺{formatCurrency(entry.cardAmount)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(entry.cardAmount)}
+                          </MaskedMoney>
                         </td>
                         <td className="px-5 py-3 font-medium text-emerald-400">
-                          ₺{formatCurrency(entry.grandTotal)}
+                          <MaskedMoney visible={amountsVisible}>
+                            ₺{formatCurrency(entry.grandTotal)}
+                          </MaskedMoney>
                         </td>
                       </tr>
                     ))}
@@ -464,10 +763,11 @@ export function CashboxContent() {
           )}
 
           <CashboxAccountsTable
-            accounts={accounts}
+            accounts={filteredAccounts}
             isLoading={accountsLoading}
             isError={accountsError}
             subtitle={accountsSubtitle}
+            showAmounts={amountsVisible}
             onReopenSuccess={handleRefresh}
           />
         </div>

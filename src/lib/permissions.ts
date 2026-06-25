@@ -1,6 +1,10 @@
 import type { AuthUser } from "@/types/auth";
 
-export const CASHBOX_ACCOUNT_EDIT_ROLES = new Set(["ADMIN", "MANAGER"]);
+export const CASHBOX_ACCOUNT_EDIT_ROLES = new Set([
+  "ADMIN",
+  "SUPERADMIN",
+  "STAFF",
+]);
 
 function normalizeUserRole(role?: string | null): string {
   if (!role) return "STAFF";
@@ -32,12 +36,6 @@ export function canEditCashboxAccount(
   user: AuthUser | null | undefined,
 ): boolean {
   return CASHBOX_ACCOUNT_EDIT_ROLES.has(normalizeUserRole(user?.role));
-}
-
-export function canDeleteCashboxAccount(
-  user: AuthUser | null | undefined,
-): boolean {
-  return isSuperAdmin(user);
 }
 
 export function canManageProducts(
