@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
+import withPWAInit from "@ducanh2912/next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+});
 
 const apiUrl = process.env.API_URL ?? "http://173.249.60.249:3001";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   async rewrites() {
     return [
       {
@@ -27,4 +35,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

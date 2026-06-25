@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { QueryProvider } from "@/providers/QueryProvider";
 import "./globals.css";
@@ -8,15 +8,33 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const APP_NAME = "Gamezone";
+const APP_DEFAULT_TITLE = "PS Cafe - Yönetim Paneli";
+const APP_TITLE_TEMPLATE = "%s - Gamezone";
+const APP_DESCRIPTION = "PlayStation Cafe yönetim paneli";
+
 export const metadata: Metadata = {
-  title: "PS Cafe - Yönetim Paneli",
-  description: "PlayStation Cafe yönetim dashboard",
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: APP_NAME,
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover" as const,
+  viewportFit: "cover",
+  themeColor: "#05050a",
 };
 
 export default function RootLayout({
