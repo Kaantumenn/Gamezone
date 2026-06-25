@@ -99,12 +99,16 @@ export function CashboxAccountEditModal({
     return Number((grandTotal - cashTotal - cardTotal).toFixed(2));
   }, [form, grandTotal]);
 
-  const isPaymentValid = useMemo(() => {
-    if (!form) return false;
-    const cashTotal = parseMoneyInput(form.cashTotal);
-    const cardTotal = parseMoneyInput(form.cardTotal);
-    return amountsMatch(cashTotal + cardTotal, grandTotal);
-  }, [form, grandTotal]);
+  const totalPaid = useMemo(() => {
+    if (!form) return 0;
+    return parseMoneyInput(form.cashTotal) + parseMoneyInput(form.cardTotal);
+  }, [form]);
+
+  const isPaymentMatched = useMemo(() => {
+    return amountsMatch(totalPaid, grandTotal);
+  }, [totalPaid, grandTotal]);
+
+  const canSubmit = totalPaid > 0.005;
 
   const mutation = useMutation({
     mutationFn: (payload: Parameters<typeof updateCashboxAccount>[1]) =>
@@ -189,8 +193,8 @@ export function CashboxAccountEditModal({
     const cashTotal = parseMoneyInput(form.cashTotal);
     const cardTotal = parseMoneyInput(form.cardTotal);
 
-    if (!amountsMatch(cashTotal + cardTotal, grandTotal)) {
-      setError("Nakit ve kart toplamı, hesap tutarına eşit olmalıdır.");
+    if (cashTotal + cardTotal <= 0.005) {
+      setError("En az bir ödeme tutarı girilmelidir.");
       return;
     }
 
@@ -280,14 +284,14 @@ export function CashboxAccountEditModal({
                 <div
                   className={cn(
                     "flex items-center justify-between rounded-xl border px-4 py-3 text-sm",
-                    isPaymentValid
+                    isPaymentMatched
                       ? "border-emerald-500/20 bg-emerald-500/10"
                       : "border-amber-500/20 bg-amber-500/10",
                   )}
                 >
                   <span
                     className={
-                      isPaymentValid ? "text-emerald-200/80" : "text-amber-200/80"
+                      isPaymentMatched ? "text-emerald-200/80" : "text-amber-200/80"
                     }
                   >
                     {remainingPreview > 0
@@ -299,19 +303,12 @@ export function CashboxAccountEditModal({
                   <span
                     className={cn(
                       "font-semibold",
-                      isPaymentValid ? "text-emerald-300" : "text-amber-300",
+                      isPaymentMatched ? "text-emerald-300" : "text-amber-300",
                     )}
                   >
                     ₺{toMoneyInput(Math.abs(remainingPreview))}
                   </span>
                 </div>
-
-                {!isPaymentValid && form && (
-                  <p className="text-xs text-amber-300/80">
-                    Nakit ve kart toplamı hesap tutarına (₺{toMoneyInput(grandTotal)})
-                    eşit olmalıdır.
-                  </p>
-                )}
               </section>
 
               <section className="space-y-3">
@@ -344,7 +341,7 @@ export function CashboxAccountEditModal({
               </button>
               <button
                 type="submit"
-                disabled={mutation.isPending || !form || !isPaymentValid}
+                disabled={mutation.isPending || !form || !canSubmit}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#6366f1] py-2.5 text-sm font-semibold text-white hover:bg-[#5558e3] disabled:opacity-60"
               >
                 {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
