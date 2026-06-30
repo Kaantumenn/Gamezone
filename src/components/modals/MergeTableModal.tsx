@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Users } from "lucide-react";
+import { CrossDeviceTransferSummary } from "@/components/session/CrossDeviceTransferSummary";
 import { useDevices } from "@/hooks/useDevices";
+import { useSessionCheckout } from "@/hooks/useSessionCheckout";
 import { mergeSessions } from "@/services/sessions";
 import { useMergeTableModalStore } from "@/stores/mergeTableModalStore";
 import { useTableDetailPanelStore } from "@/stores/tableDetailPanelStore";
@@ -41,6 +43,10 @@ export function MergeTableModal() {
   const { sourceTable, isOpen, close } = useMergeTableModalStore();
   const closePanel = useTableDetailPanelStore((s) => s.close);
   const { data: devicesData } = useDevices();
+  const { data: sourceCheckout } = useSessionCheckout(
+    sourceTable?.sessionId,
+    isOpen,
+  );
   const [targetSessionId, setTargetSessionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,8 +144,46 @@ export function MergeTableModal() {
           hangi masaya birleştirilsin?
         </p>
 
+        {sourceCheckout && (
+          <div className="mt-4 space-y-3">
+            <CrossDeviceTransferSummary
+              closingDeviceType={sourceTable.type}
+              mergedUsageTotal={sourceCheckout.mergedUsageTotal}
+              currentUsageTotal={sourceCheckout.usage.gameTotal}
+              usageSegments={sourceCheckout.usageSegments}
+            />
+
+            {sourceCheckout.mergedSessions.length > 0 && (
+              <section className="rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/5 p-4">
+                <h4 className="mb-2 text-xs font-semibold text-white">
+                  Birleştirilmiş Masalar
+                </h4>
+                <div className="space-y-2">
+                  {sourceCheckout.mergedSessions.map((merged) => (
+                    <p
+                      key={merged.id}
+                      className="text-xs leading-relaxed text-white/75"
+                    >
+                      <span className="font-medium text-[#c7d2fe]">
+                        {merged.sourceDeviceName}
+                      </span>
+                      <span className="text-white/35"> → </span>
+                      <span>
+                        Kullanım: ₺{formatPanelAmount(merged.sourceGameTotal)}
+                        , Sipariş: ₺
+                        {formatPanelAmount(merged.sourceOrderTotal)}, Toplam: ₺
+                        {formatPanelAmount(merged.sourceGrandTotal)}
+                      </span>
+                    </p>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
         <form id="merge-table-form" onSubmit={handleSubmit}>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 max-h-56 space-y-2 overflow-y-auto">
             {mergeTargets.length === 0 ? (
               <p className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-6 text-center text-sm text-white/40">
                 Birleştirilebilecek başka açık masa yok.

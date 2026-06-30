@@ -16,6 +16,10 @@ import type {
 } from "@/types/cashbox";
 import type { TableType } from "@/types/table";
 import { formatDeviceDisplayName } from "@/lib/format";
+import {
+  getCashboxDeviceBadgeLabel,
+  mapApiDeviceType,
+} from "@/lib/cashboxDevice";
 
 function toNumber(value: number | string | undefined): number {
   if (value === undefined) return 0;
@@ -51,11 +55,20 @@ function mapEntry(entry: CashboxEntry, index: number): CashboxReportEntry {
   );
   const gameTotal = toNumber(entry.gameTotal);
   const orderTotal = toNumber(entry.orderTotal);
+  const mergedUsageTotal = toNumber(entry.mergedUsageTotal);
+  const deviceType =
+    mapApiDeviceType(entry.deviceType) ??
+    inferCashboxAccountDeviceType({
+      deviceType: entry.deviceType,
+      deviceName: entry.deviceName,
+    });
 
   return {
     id: String(entry.id ?? index),
     label: formatDeviceDisplayName(entry.deviceName ?? `Kayıt ${index + 1}`),
-    sublabel: entry.paymentMethod,
+    sublabel: getCashboxDeviceBadgeLabel(deviceType, mergedUsageTotal),
+    deviceType,
+    mergedUsageTotal,
     cashAmount: toNumber(entry.cashAmount),
     cardAmount: toNumber(entry.cardAmount),
     gameTotal,
@@ -111,9 +124,9 @@ function formatDurationText(
 export function inferCashboxAccountDeviceType(
   item: Pick<CashboxAccountApi, "deviceType" | "type" | "psNo" | "psNumber" | "deviceName">,
 ): TableType {
-  const raw = (item.deviceType ?? item.type ?? "").toUpperCase();
-  if (raw === "PLAYSTATION") return "playstation";
-  if (raw === "STEERING_WHEEL" || raw === "STEERING") return "steering";
+  const fromApi =
+    mapApiDeviceType(item.deviceType) ?? mapApiDeviceType(item.type);
+  if (fromApi) return fromApi;
 
   const label = (item.psNo ?? item.psNumber ?? item.deviceName ?? "").trim();
   const normalized = label.toLowerCase();
@@ -153,6 +166,7 @@ function mapAccount(item: CashboxAccountApi, index: number): CashboxAccount {
   const cardTotal = toNumber(item.cardTotal ?? item.cardAmount);
   const rawPsNo = item.psNo ?? item.psNumber ?? item.deviceName ?? `PS ${index + 1}`;
   const deviceType = inferCashboxAccountDeviceType(item);
+  const mergedUsageTotal = toNumber(item.mergedUsageTotal);
 
   return {
     id: String(item.id ?? item.sessionId ?? index),
@@ -173,6 +187,7 @@ function mapAccount(item: CashboxAccountApi, index: number): CashboxAccount {
     cashTotal,
     cardTotal,
     remainingTotal: mapRemainingTotal(item, grandTotal, cashTotal, cardTotal),
+    mergedUsageTotal,
   };
 }
 

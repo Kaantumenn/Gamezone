@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import type { CashboxRangeQueryParams } from "@/lib/cashboxTimeFilter";
 import type {
   CashboxAccountsApiResponse,
   CashboxAccountDetailResponse,
@@ -12,30 +13,29 @@ export async function fetchCashboxToday(): Promise<CashboxApiResponse> {
 }
 
 export async function fetchCashboxByDate(
-  date: string,
+  range: CashboxRangeQueryParams,
 ): Promise<CashboxApiResponse> {
   const { data } = await api.get<CashboxApiResponse>("/cashbox/date", {
-    params: { date },
+    params: { start: range.start, end: range.end },
   });
   return data;
 }
 
 export async function fetchCashboxRange(
-  startDate: string,
-  endDate: string,
+  range: CashboxRangeQueryParams,
 ): Promise<CashboxApiResponse> {
   const { data } = await api.get<CashboxApiResponse>("/cashbox/range", {
-    params: { startDate, endDate },
+    params: { start: range.start, end: range.end },
   });
   return data;
 }
 
 export async function fetchCashboxAccounts(
-  date: string,
+  range: CashboxRangeQueryParams,
 ): Promise<CashboxAccountsApiResponse> {
   const { data } = await api.get<CashboxAccountsApiResponse>(
     "/cashbox/accounts",
-    { params: { date } },
+    { params: { start: range.start, end: range.end } },
   );
   return data;
 }

@@ -56,6 +56,8 @@ export interface MergeSessionResponse {
 
 export interface TransferSessionPayload {
   targetDeviceId: number;
+  tariffId?: number;
+  controllerCount?: number;
 }
 
 export interface TransferSessionResponse {

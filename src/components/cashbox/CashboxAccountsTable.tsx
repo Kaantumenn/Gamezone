@@ -8,9 +8,13 @@ import { CashboxAccountEditModal } from "@/components/cashbox/CashboxAccountEdit
 import { MaskedMoney } from "@/components/cashbox/MaskedMoney";
 import {
   formatCurrency,
-  formatDateLabel,
+  formatDateLabelFromIso,
   formatTimeFromIso,
 } from "@/lib/format";
+import {
+  getCashboxDeviceBadgeClass,
+  getCashboxDeviceBadgeLabel,
+} from "@/lib/cashboxDevice";
 import { canEditCashboxAccount } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/authStore";
 import type { CashboxAccount } from "@/types/cashbox";
@@ -81,6 +85,20 @@ export function CashboxAccountsTable({
     return accounts.filter((account) => account.deviceType === deviceFilter);
   }, [accounts, deviceFilter]);
 
+  const accountCounts = useMemo(() => {
+    return accounts.reduce(
+      (counts, account) => {
+        if (account.deviceType === "steering") {
+          counts.steering += 1;
+        } else {
+          counts.playstation += 1;
+        }
+        return counts;
+      },
+      { playstation: 0, steering: 0 },
+    );
+  }, [accounts]);
+
   return (
     <>
       <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14]">
@@ -94,7 +112,7 @@ export function CashboxAccountsTable({
             </div>
             {!isLoading && (
               <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
-                {filteredAccounts.length} kayıt
+                {accountCounts.playstation} PS · {accountCounts.steering} Direksiyon
               </span>
             )}
           </div>
@@ -162,28 +180,53 @@ export function CashboxAccountsTable({
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#6366f1]/15 text-[#818cf8]">
-                          <Gamepad2 className="h-4 w-4" />
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-lg",
+                            account.deviceType === "steering"
+                              ? "bg-[#3b82f6]/15 text-[#60a5fa]"
+                              : "bg-[#6366f1]/15 text-[#818cf8]",
+                          )}
+                        >
+                          {account.deviceType === "steering" ? (
+                            <SteeringWheelIcon className="h-4 w-4" />
+                          ) : (
+                            <Gamepad2 className="h-4 w-4" />
+                          )}
                         </div>
-                        <span className="font-medium text-white">
-                          {account.psNo}
-                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-white">
+                              {account.psNo}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide",
+                                getCashboxDeviceBadgeClass(
+                                  account.deviceType,
+                                  account.mergedUsageTotal,
+                                ),
+                              )}
+                            >
+                              {getCashboxDeviceBadgeLabel(
+                                account.deviceType,
+                                account.mergedUsageTotal,
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-white/70">
                       <p>{formatTimeFromIso(account.startedAt)}</p>
                       <p className="text-xs text-white/30">
-                        {account.startedAt
-                          ? formatDateLabel(account.startedAt.slice(0, 10))
-                          : "—"}
+                        {formatDateLabelFromIso(account.startedAt)}
                       </p>
                     </td>
                     <td className="px-5 py-4 text-white/70">
                       <p>{formatTimeFromIso(account.endedAt)}</p>
                       <p className="text-xs text-white/30">
-                        {account.endedAt
-                          ? formatDateLabel(account.endedAt.slice(0, 10))
-                          : "—"}
+                        {formatDateLabelFromIso(account.endedAt)}
                       </p>
                     </td>
                     <td className="px-5 py-4 font-mono text-white/80">

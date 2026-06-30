@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { HelpLabel } from "@/components/ui/HelpLabel";
 import { UsageSegmentsList } from "@/components/session/UsageSegmentsList";
+import { CrossDeviceTransferSummary } from "@/components/session/CrossDeviceTransferSummary";
+import { hasCrossDeviceTransfer } from "@/lib/cashboxDevice";
 import { useMenu } from "@/hooks/useMenu";
 import { useSessionCheckout } from "@/hooks/useSessionCheckout";
 import { useSessionOrders } from "@/hooks/useSessionOrders";
@@ -390,8 +392,26 @@ export function CloseTableModal() {
                         ₺{formatCurrency(checkout.usage.gameTotal)}
                       </dd>
                     </div>
+                    {hasCrossDeviceTransfer(checkout.mergedUsageTotal) && (
+                      <div className="flex justify-between gap-4 text-sm">
+                        <dt className="text-white/45">Aktarılan Kullanım Dahil</dt>
+                        <dd className="font-medium text-amber-300">
+                          ₺
+                          {formatCurrency(
+                            checkout.usage.gameTotal + checkout.mergedUsageTotal,
+                          )}
+                        </dd>
+                      </div>
+                    )}
                   </dl>
                 </section>
+
+                <CrossDeviceTransferSummary
+                  closingDeviceType={table.type}
+                  mergedUsageTotal={checkout.mergedUsageTotal}
+                  currentUsageTotal={checkout.usage.gameTotal}
+                  usageSegments={checkout.usageSegments}
+                />
 
                 {checkout.mergedSessions.length > 0 && (
                   <section className="rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/5 p-4">
@@ -513,10 +533,29 @@ export function CloseTableModal() {
                     Hesap Özeti
                   </h3>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-white/70">
-                      <span>Oyun Ücreti</span>
-                      <span>₺{formatCurrency(checkout.gameTotal)}</span>
-                    </div>
+                    {hasCrossDeviceTransfer(checkout.mergedUsageTotal) ? (
+                      <>
+                        <div className="flex justify-between text-white/70">
+                          <span>Önceki Cihaz Kullanımı</span>
+                          <span className="text-amber-300">
+                            ₺{formatCurrency(checkout.mergedUsageTotal)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-white/70">
+                          <span>Mevcut Cihaz Kullanımı</span>
+                          <span>₺{formatCurrency(checkout.usage.gameTotal)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/5 pt-2 font-medium text-white/85">
+                          <span>Oyun Ücreti</span>
+                          <span>₺{formatCurrency(checkout.gameTotal)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-white/70">
+                        <span>Oyun Ücreti</span>
+                        <span>₺{formatCurrency(checkout.gameTotal)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-white/70">
                       <span>Sipariş Toplamı</span>
                       <span>₺{formatCurrency(checkout.orderTotal)}</span>

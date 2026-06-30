@@ -3,12 +3,19 @@
 import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Gamepad2, Loader2, Receipt, RotateCcw, X } from "lucide-react";
+import { SteeringWheelIcon } from "@/components/icons/SteeringWheelIcon";
 import { ControllerChangesList } from "@/components/session/ControllerChangesList";
+import { CrossDeviceTransferSummary } from "@/components/session/CrossDeviceTransferSummary";
 import { useCashboxAccountDetail } from "@/hooks/useCashboxAccountDetail";
 import {
   formatCurrency,
   formatDateTimeFromIso,
 } from "@/lib/format";
+import {
+  getCashboxDeviceBadgeClass,
+  getCashboxDeviceBadgeLabel,
+  hasCrossDeviceTransfer,
+} from "@/lib/cashboxDevice";
 import { reopenSession } from "@/services/sessions";
 import type { CashboxAccount } from "@/types/cashbox";
 import { cn } from "@/lib/utils";
@@ -62,6 +69,7 @@ export function CashboxAccountDetailModal({
   if (!isOpen || !account) return null;
 
   const remainingTotal = detail?.remainingTotal ?? account.remainingTotal;
+  const mergedUsageTotal = detail?.mergedUsageTotal ?? account.mergedUsageTotal;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -75,13 +83,40 @@ export function CashboxAccountDetailModal({
       <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14] shadow-2xl">
         <div className="flex items-start justify-between border-b border-white/5 px-5 py-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6366f1]/15 text-[#818cf8]">
-              <Gamepad2 className="h-5 w-5" />
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl",
+                account.deviceType === "steering"
+                  ? "bg-[#3b82f6]/15 text-[#60a5fa]"
+                  : "bg-[#6366f1]/15 text-[#818cf8]",
+              )}
+            >
+              {account.deviceType === "steering" ? (
+                <SteeringWheelIcon className="h-5 w-5" />
+              ) : (
+                <Gamepad2 className="h-5 w-5" />
+              )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">
-                {detail?.psNo ?? account.psNo} Hesap Detayı
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-white">
+                  {detail?.psNo ?? account.psNo} Hesap Detayı
+                </h2>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide",
+                    getCashboxDeviceBadgeClass(
+                      account.deviceType,
+                      mergedUsageTotal,
+                    ),
+                  )}
+                >
+                  {getCashboxDeviceBadgeLabel(
+                    account.deviceType,
+                    mergedUsageTotal,
+                  )}
+                </span>
+              </div>
               <p className="mt-0.5 text-sm text-white/40">
                 Oturum #{sessionId ?? "—"}
               </p>
@@ -165,6 +200,12 @@ export function CashboxAccountDetailModal({
                 </dl>
               </section>
 
+              <CrossDeviceTransferSummary
+                closingDeviceType={account.deviceType}
+                mergedUsageTotal={mergedUsageTotal}
+                currentUsageTotal={detail.gameTotal}
+              />
+
               <section className="rounded-xl border border-white/10 bg-[#12121e] p-4">
                 <h3 className="mb-3 text-sm font-semibold text-white">
                   Sipariş Kalemleri
@@ -206,10 +247,34 @@ export function CashboxAccountDetailModal({
                   className="mb-4 border-b border-white/5 pb-4"
                 />
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-white/70">
-                    <span>Oyun Ücreti</span>
-                    <span>₺{formatCurrency(detail.gameTotal)}</span>
-                  </div>
+                  {hasCrossDeviceTransfer(mergedUsageTotal) ? (
+                    <>
+                      <div className="flex justify-between text-white/70">
+                        <span>Önceki Cihaz Kullanımı</span>
+                        <span className="text-amber-300">
+                          ₺{formatCurrency(mergedUsageTotal)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-white/70">
+                        <span>Mevcut Cihaz Kullanımı</span>
+                        <span>₺{formatCurrency(detail.gameTotal)}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-white/5 pt-2 font-medium text-white/85">
+                        <span>Oyun Ücreti</span>
+                        <span>
+                          ₺
+                          {formatCurrency(
+                            detail.gameTotal + mergedUsageTotal,
+                          )}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-white/70">
+                      <span>Oyun Ücreti</span>
+                      <span>₺{formatCurrency(detail.gameTotal)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-white/70">
                     <span>Sipariş Toplamı</span>
                     <span>₺{formatCurrency(detail.orderTotal)}</span>

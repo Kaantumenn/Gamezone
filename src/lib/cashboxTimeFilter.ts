@@ -1,30 +1,9 @@
-import type { CashboxAccount, CashboxReportEntry, CashboxTotals } from "@/types/cashbox";
+import { localDateTimeToUtcIso } from "@/lib/format";
+import type { CashboxViewMode } from "@/types/cashbox";
 
-export interface CashboxTimeBounds {
-  startAt: Date | null;
-  endAt: Date | null;
-}
-
-function parseDateTime(dateStr: string, time: string, endOfMinute = false): Date {
-  const [hours, minutes] = time.split(":").map((part) => Number(part));
-  const date = new Date(`${dateStr}T00:00:00`);
-  date.setHours(
-    Number.isNaN(hours) ? 0 : hours,
-    Number.isNaN(minutes) ? 0 : minutes,
-    endOfMinute ? 59 : 0,
-    endOfMinute ? 999 : 0,
-  );
-  return date;
-}
-
-function startOfDay(dateStr: string): Date {
-  return new Date(`${dateStr}T00:00:00`);
-}
-
-function endOfDay(dateStr: string): Date {
-  const date = new Date(`${dateStr}T00:00:00`);
-  date.setHours(23, 59, 59, 999);
-  return date;
+export interface CashboxRangeQueryParams {
+  start: string;
+  end: string;
 }
 
 export function hasDayTimeFilter(startTime: string, endTime: string): boolean {
@@ -51,39 +30,27 @@ export function isValidDayTimeRange(startTime: string, endTime: string): boolean
 }
 
 function addDays(dateStr: string, days: number): string {
-  const date = new Date(`${dateStr}T12:00:00`);
+  const date = new Date(`${dateStr}T12:00:00+03:00`);
   date.setDate(date.getDate() + days);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+  }).format(date);
 }
 
-export function buildDayTimeBounds(
+function buildDayUtcRange(
   date: string,
   startTime: string,
   endTime: string,
-): CashboxTimeBounds {
-  if (!hasDayTimeFilter(startTime, endTime)) {
-    return { startAt: null, endAt: null };
-  }
+): CashboxRangeQueryParams {
+  const normalizedStart = normalizeTimeInput(startTime) || "00:00";
+  const normalizedEnd = normalizeTimeInput(endTime) || "23:59";
+  const endDate =
+    normalizedEnd <= normalizedStart ? addDays(date, 1) : date;
 
-  const normalizedStart = normalizeTimeInput(startTime);
-  const normalizedEnd = normalizeTimeInput(endTime);
-
-  const startAt = normalizedStart
-    ? parseDateTime(date, normalizedStart)
-    : startOfDay(date);
-
-  let endAt = normalizedEnd
-    ? parseDateTime(date, normalizedEnd, true)
-    : endOfDay(date);
-
-  if (normalizedStart && normalizedEnd && normalizedEnd <= normalizedStart) {
-    endAt = parseDateTime(addDays(date, 1), normalizedEnd, true);
-  }
-
-  return { startAt, endAt };
+  return {
+    start: localDateTimeToUtcIso(date, normalizedStart),
+    end: localDateTimeToUtcIso(endDate, normalizedEnd, true),
+  };
 }
 
 export function generateTimeOptions(stepMinutes = 30): string[] {
@@ -100,69 +67,40 @@ export function generateTimeOptions(stepMinutes = 30): string[] {
   return options;
 }
 
-export function buildRangeTimeBounds(
-  startDate: string,
-  startTime: string,
-  endDate: string,
-  endTime: string,
-): CashboxTimeBounds {
-  const startAt = parseDateTime(startDate, startTime || "00:00");
-  const endAt = parseDateTime(endDate, endTime || "23:59", true);
-  return { startAt, endAt };
-}
+export function getCashboxQueryRange(
+  mode: CashboxViewMode,
+  options: {
+    today: string;
+    selectedDate: string;
+    rangeStartDate: string;
+    rangeEndDate: string;
+    dayStartTime: string;
+    dayEndTime: string;
+    rangeStartTime: string;
+    rangeEndTime: string;
+  },
+): CashboxRangeQueryParams | null {
+  if (mode === "range") {
+    return {
+      start: localDateTimeToUtcIso(
+        options.rangeStartDate,
+        normalizeTimeInput(options.rangeStartTime) || "00:00",
+      ),
+      end: localDateTimeToUtcIso(
+        options.rangeEndDate,
+        normalizeTimeInput(options.rangeEndTime) || "23:59",
+        true,
+      ),
+    };
+  }
 
-function isWithinBounds(
-  iso: string | null | undefined,
-  bounds: CashboxTimeBounds,
-): boolean {
-  if (!bounds.startAt && !bounds.endAt) return true;
-  if (!iso) return false;
+  const date = mode === "today" ? options.today : options.selectedDate;
 
-  const value = new Date(iso);
-  if (Number.isNaN(value.getTime())) return false;
-  if (bounds.startAt && value < bounds.startAt) return false;
-  if (bounds.endAt && value > bounds.endAt) return false;
-  return true;
-}
+  if (mode === "today" && !hasDayTimeFilter(options.dayStartTime, options.dayEndTime)) {
+    return null;
+  }
 
-export function sumAccountTotals(accounts: CashboxAccount[]): CashboxTotals {
-  return accounts.reduce<CashboxTotals>(
-    (totals, account) => ({
-      grandTotal: totals.grandTotal + account.grandTotal,
-      cashTotal: totals.cashTotal + account.cashTotal,
-      cardTotal: totals.cardTotal + account.cardTotal,
-      gameTotal: totals.gameTotal + account.gameTotal,
-      orderTotal: totals.orderTotal + account.orderTotal,
-      accountCount: totals.accountCount + 1,
-    }),
-    {
-      grandTotal: 0,
-      cashTotal: 0,
-      cardTotal: 0,
-      gameTotal: 0,
-      orderTotal: 0,
-      accountCount: 0,
-    },
-  );
-}
-
-export function filterCashboxByTime(
-  accounts: CashboxAccount[],
-  entries: CashboxReportEntry[],
-  bounds: CashboxTimeBounds,
-) {
-  const filteredAccounts = accounts.filter((account) =>
-    isWithinBounds(account.endedAt, bounds),
-  );
-  const filteredEntries = entries.filter((entry) =>
-    isWithinBounds(entry.closedAt, bounds),
-  );
-
-  return {
-    accounts: filteredAccounts,
-    entries: filteredEntries,
-    totals: sumAccountTotals(filteredAccounts),
-  };
+  return buildDayUtcRange(date, options.dayStartTime, options.dayEndTime);
 }
 
 export function formatTimeFilterLabel(

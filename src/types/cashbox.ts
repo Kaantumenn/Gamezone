@@ -4,12 +4,14 @@ import type { SessionControllerChange } from "@/types/session";
 export interface CashboxEntry {
   id?: number | string;
   deviceName?: string;
+  deviceType?: string;
   closedAt?: string;
   paymentMethod?: string;
   cashAmount?: number | string;
   cardAmount?: number | string;
   gameTotal?: number | string;
   orderTotal?: number | string;
+  mergedUsageTotal?: number | string;
   grandTotal?: number | string;
   total?: number | string;
 }
@@ -63,6 +65,7 @@ export interface CashboxApiResponse {
   payments?: CashboxEntry[];
   items?: CashboxEntry[];
   days?: CashboxDayApi[];
+  accounts?: CashboxAccountApi[];
 }
 
 export interface CashboxTotals {
@@ -78,6 +81,8 @@ export interface CashboxReportEntry {
   id: string;
   label: string;
   sublabel?: string;
+  deviceType: TableType;
+  mergedUsageTotal: number;
   cashAmount: number;
   cardAmount: number;
   gameTotal: number;
@@ -133,6 +138,7 @@ export interface CashboxAccountApi {
   cardTotal?: number | string;
   cardAmount?: number | string;
   remainingTotal?: number | string;
+  mergedUsageTotal?: number | string;
 }
 
 export type CashboxAccountsApiResponse =
@@ -154,6 +160,7 @@ export interface CashboxAccount {
   cashTotal: number;
   cardTotal: number;
   remainingTotal: number;
+  mergedUsageTotal: number;
 }
 
 export interface CashboxAccountDetailOrderApi {

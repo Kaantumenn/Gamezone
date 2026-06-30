@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { CashboxRangeQueryParams } from "@/lib/cashboxTimeFilter";
 import { mapCashboxResponse } from "@/lib/mapCashbox";
 import {
   fetchCashboxByDate,
@@ -12,6 +13,7 @@ interface UseCashboxParams {
   date?: string;
   startDate?: string;
   endDate?: string;
+  range?: CashboxRangeQueryParams | null;
 }
 
 function getQueryLabel(mode: CashboxViewMode, date?: string, startDate?: string, endDate?: string) {
@@ -28,22 +30,25 @@ export function useCashbox({
   date,
   startDate,
   endDate,
+  range,
 }: UseCashboxParams) {
   const enabled =
     mode === "today" ||
-    (mode === "date" && !!date) ||
-    (mode === "range" && !!startDate && !!endDate);
+    (mode === "date" && !!range) ||
+    (mode === "range" && !!range);
 
   return useQuery({
-    queryKey: ["cashbox", mode, date, startDate, endDate],
+    queryKey: ["cashbox", mode, date, startDate, endDate, range],
     queryFn: async () => {
       let data;
       if (mode === "today") {
-        data = await fetchCashboxToday();
+        data = range
+          ? await fetchCashboxByDate(range)
+          : await fetchCashboxToday();
       } else if (mode === "date") {
-        data = await fetchCashboxByDate(date!);
+        data = await fetchCashboxByDate(range!);
       } else {
-        data = await fetchCashboxRange(startDate!, endDate!);
+        data = await fetchCashboxRange(range!);
       }
 
       return mapCashboxResponse(

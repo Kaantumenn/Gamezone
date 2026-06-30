@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Banknote,
@@ -25,13 +25,13 @@ import {
 } from "@/components/cashbox/CashboxFilters";
 import { useCashbox } from "@/hooks/useCashbox";
 import { useCashboxAccounts } from "@/hooks/useCashboxAccounts";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { CashboxAccountsTable } from "@/components/cashbox/CashboxAccountsTable";
+import { getCashboxDeviceBadgeClass } from "@/lib/cashboxDevice";
 import {
-  buildDayTimeBounds,
-  buildRangeTimeBounds,
-  filterCashboxByTime,
   formatRangeFilterLabel,
   formatTimeFilterLabel,
+  getCashboxQueryRange,
   hasDayTimeFilter,
   normalizeTimeInput,
 } from "@/lib/cashboxTimeFilter";
@@ -39,6 +39,7 @@ import {
   formatCurrency,
   formatDateLabel,
   formatDateTimeFromIso,
+  isValidDateInputValue,
   toDateInputValue,
 } from "@/lib/format";
 import type { CashboxViewMode } from "@/types/cashbox";
@@ -148,7 +149,20 @@ export function CashboxContent() {
   );
 
   const [mode, setMode] = useState<CashboxViewMode>("today");
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDateInput, setSelectedDateInput] = useState(today);
+  const [appliedSelectedDate, setAppliedSelectedDate] = useState(today);
+  const debouncedSelectedDateInput = useDebouncedValue(selectedDateInput);
+
+  useEffect(() => {
+    if (isValidDateInputValue(debouncedSelectedDateInput)) {
+      setAppliedSelectedDate(debouncedSelectedDateInput);
+    }
+  }, [debouncedSelectedDateInput]);
+
+  const commitSelectedDate = useCallback((value: string) => {
+    if (!isValidDateInputValue(value)) return;
+    setAppliedSelectedDate(value);
+  }, []);
   const [startDate, setStartDate] = useState(monthStart);
   const [endDate, setEndDate] = useState(today);
   const [amountsVisible, setAmountsVisible] = useState(true);
@@ -169,7 +183,7 @@ export function CashboxContent() {
   const [rangeDraft, setRangeDraft] = useState(rangeFilter);
 
   const effectiveMode: CashboxViewMode = canViewHistory ? mode : "today";
-  const effectiveSelectedDate = canViewHistory ? selectedDate : today;
+  const effectiveSelectedDate = canViewHistory ? appliedSelectedDate : today;
   const effectiveStartDate = canViewHistory
     ? effectiveMode === "range"
       ? rangeFilter.startDate
@@ -185,11 +199,37 @@ export function CashboxContent() {
     ? viewModes
     : viewModes.filter((item) => item.id === "today");
 
+  const cashboxQueryRange = useMemo(
+    () =>
+      getCashboxQueryRange(effectiveMode, {
+        today,
+        selectedDate: effectiveSelectedDate,
+        rangeStartDate: rangeFilter.startDate,
+        rangeEndDate: rangeFilter.endDate,
+        dayStartTime,
+        dayEndTime,
+        rangeStartTime: rangeFilter.startTime,
+        rangeEndTime: rangeFilter.endTime,
+      }),
+    [
+      effectiveMode,
+      today,
+      effectiveSelectedDate,
+      rangeFilter.startDate,
+      rangeFilter.endDate,
+      dayStartTime,
+      dayEndTime,
+      rangeFilter.startTime,
+      rangeFilter.endTime,
+    ],
+  );
+
   const { data, isLoading, isError, refetch, isFetching } = useCashbox({
     mode: effectiveMode,
-    date: effectiveSelectedDate,
+    date: effectiveMode === "today" ? today : effectiveSelectedDate,
     startDate: effectiveStartDate,
     endDate: effectiveEndDate,
+    range: cashboxQueryRange,
   });
 
   const {
@@ -198,54 +238,8 @@ export function CashboxContent() {
     isError: accountsError,
   } = useCashboxAccounts({
     mode: effectiveMode,
-    today,
-    selectedDate: effectiveSelectedDate,
-    startDate: effectiveStartDate,
-    endDate: effectiveEndDate,
+    range: cashboxQueryRange,
   });
-
-  const timeBounds = useMemo(() => {
-    if (effectiveMode === "today") {
-      return buildDayTimeBounds(today, dayStartTime, dayEndTime);
-    }
-    if (effectiveMode === "date") {
-      return buildDayTimeBounds(effectiveSelectedDate, dayStartTime, dayEndTime);
-    }
-    return buildRangeTimeBounds(
-      rangeFilter.startDate,
-      rangeFilter.startTime,
-      rangeFilter.endDate,
-      rangeFilter.endTime,
-    );
-  }, [
-    effectiveMode,
-    today,
-    effectiveSelectedDate,
-    dayStartTime,
-    dayEndTime,
-    rangeFilter,
-  ]);
-
-  const filteredReport = useMemo(() => {
-    if (!data) return null;
-
-    const filtered = filterCashboxByTime(
-      accounts,
-      data.entries,
-      timeBounds,
-    );
-
-    return {
-      ...data,
-      totals: filtered.totals,
-      entries: filtered.entries,
-    };
-  }, [data, accounts, timeBounds]);
-
-  const filteredAccounts = useMemo(() => {
-    if (!data) return accounts;
-    return filterCashboxByTime(accounts, data.entries, timeBounds).accounts;
-  }, [accounts, data, timeBounds]);
 
   const showDaysTable = useMemo(() => {
     if (!data?.days.length) return false;
@@ -277,7 +271,7 @@ export function CashboxContent() {
     rangeFilter,
   ]);
 
-  const totals = filteredReport?.totals;
+  const totals = data?.totals;
 
   const accountsSubtitle = useMemo(() => {
     if (effectiveMode === "today") {
@@ -456,8 +450,9 @@ export function CashboxContent() {
         {canViewHistory && effectiveMode === "date" && (
           <input
             type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            value={selectedDateInput}
+            onChange={(e) => setSelectedDateInput(e.target.value)}
+            onBlur={(e) => commitSelectedDate(e.target.value)}
             className="rounded-xl border border-white/10 bg-[#12121e] px-4 py-2.5 text-sm text-white outline-none focus:border-emerald-500/40"
           />
         )}
@@ -520,7 +515,7 @@ export function CashboxContent() {
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
           Kasa verisi yükleniyor...
         </div>
-      ) : isError || !filteredReport || !totals ? (
+      ) : isError || !data || !totals ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#12121e] py-24 text-white/50">
           <p>Kasa verisi yüklenemedi.</p>
           <button
@@ -646,7 +641,7 @@ export function CashboxContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredReport.days.map((day) => (
+                    {data.days.map((day) => (
                       <tr
                         key={day.date}
                         className="border-b border-white/5 hover:bg-white/[0.02]"
@@ -690,7 +685,7 @@ export function CashboxContent() {
             </section>
           )}
 
-          {filteredReport.entries.length > 0 && (
+          {data.entries.length > 0 && (
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0e14]">
               <div className="border-b border-white/5 px-5 py-4">
                 <h2 className="text-sm font-semibold text-white">
@@ -711,18 +706,28 @@ export function CashboxContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredReport.entries.map((entry) => (
+                    {data.entries.map((entry) => (
                       <tr
                         key={entry.id}
                         className="border-b border-white/5 hover:bg-white/[0.02]"
                       >
                         <td className="px-5 py-3">
-                          <p className="font-medium text-white">{entry.label}</p>
-                          {entry.sublabel && (
-                            <p className="text-xs text-white/35">
-                              {entry.sublabel}
-                            </p>
-                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-white">{entry.label}</p>
+                            {entry.sublabel && (
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide",
+                                  getCashboxDeviceBadgeClass(
+                                    entry.deviceType,
+                                    entry.mergedUsageTotal,
+                                  ),
+                                )}
+                              >
+                                {entry.sublabel}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-3 text-white/50">
                           {entry.closedAt
@@ -763,7 +768,7 @@ export function CashboxContent() {
           )}
 
           <CashboxAccountsTable
-            accounts={filteredAccounts}
+            accounts={accounts}
             isLoading={accountsLoading}
             isError={accountsError}
             subtitle={accountsSubtitle}
